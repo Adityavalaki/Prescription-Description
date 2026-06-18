@@ -1,0 +1,145 @@
+// services/extract.js — the real AI scan pipeline for Medira.
+// Pick a photo -> POST it to the Supabase `extract-prescription` Edge Function
+// (Gemini 3.5 Flash, 89.4% benchmark) -> map the {name, per_day, stock} result
+// into the app's detection-card shape (same fields as data/mockData.js DETECTED).
+//
+// The Gemini API key lives ONLY in the Edge Function (server-side). The app calls
+// the function with the project's publishable anon key — nothing secret ships in the APK.
+
+import * as ImagePicker from 'expo-image-picker';
+import { MED_COLORS } from '../theme/colors';
+import { afterMealTimes } from '../state/store';
+
+// ---- Supabase project (DawaiSaathi) ----
+const SUPABASE_URL = 'https://fvgeqvsceslwbdjybmff.supabase.co';
+// publishable / anon key — safe to ship; the function gate checks it, the AI key stays server-side
+const ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2Z2VxdnNjZXNsd2JkanlibWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODcyMjMsImV4cCI6MjA5Njc2MzIyM30.KonZosfgCDdhQi5a_nKSbR94wwfpDelxKBZ8HEAwBsA';
+const FN_URL = `${SUPABASE_URL}/functions/v1/extract-prescription`;
+
+// ── 1. capture / pick an image, downscaled, as base64 ───────────────
+export async function pickPrescriptionImage(fromCamera) {
+  const opts = {
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.85,
+    base64: true,
+    allowsEditing: false,
+  };
+  let res;
+  if (fromCamera) {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) throw new Error('Camera permission denied');
+    res = await ImagePicker.launchCameraAsync(opts);
+  } else {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) throw new Error('Photo library permission denied');
+    res = await ImagePicker.launchImageLibraryAsync(opts);
+  }
+  if (res.canceled || !res.assets || !res.assets[0]) return null;
+  const asset = res.assets[0];
+  return { uri: asset.uri, base64: asset.base64, mime: asset.mimeType || 'image/jpeg' };
+}
+
+// ── 2. send to the Edge Function, get structured medicines back ─────
+export async function extractFromBase64(base64, mime = 'image/jpeg') {
+  const resp = await fetch(FN_URL, {
+    method: 'POST',
+    headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_b64: base64, mime }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.error) {
+    throw new Error(data.error || `Server error ${resp.status}`);
+  }
+  return data.medicines || [];
+}
+
+// ── 3. map the AI output to the app's detection-card shape ──────────
+const SLOT_NAMES = ['Morning', 'Afternoon', 'Night'];
+
+function gridParts(per) {
+  const m = /^(\d+)-(\d+)-(\d+)$/.exec((per || '').trim());
+  return m ? [+m[1], +m[2], +m[3]] : null;
+}
+function freqShort(g) {
+  const n = g.filter((x) => x > 0).length;
+  return n === 1 ? 'OD' : n === 2 ? 'BD' : n === 3 ? 'TDS' : `${n}×`;
+}
+function detectForm(name) {
+  const s = (name || '').toLowerCase();
+  if (/\b(cap|caps|capsule)/.test(s)) return 'Capsule';
+  if (/\b(syp|syr|syrup)/.test(s)) return 'Syrup';
+  if (/\b(inj|injection)/.test(s)) return 'Injection';
+  if (/\b(gel|cream|oint)/.test(s)) return 'Cream';
+  if (/\b(drop|drops)/.test(s)) return 'Drops';
+  return 'Tablet';
+}
+function cleanName(name) {
+  // strip a leading form prefix like "Tab." / "Cap." / "Syp." for a tidy title
+  return (name || '')
+    .replace(/^\s*(tab|tabs|tablet|cap|caps|capsule|syp|syr|syrup|inj|injection|t|c)\.?\s+/i, '')
+    .trim() || name;
+}
+function strengthOf(name) {
+  const m = /(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|gm|iu|k)\b/i.exec(name || '');
+  return m ? `${m[1]} ${m[2]}` : '';
+}
+function durationOf(stock) {
+  const s = (stock || '').trim();
+  if (!s) return 'Ongoing';
+  const m = /([\d.]+)\s*(day|days|week|weeks)/i.exec(s);
+  if (!m) return s;
+  return `${m[1]} ${m[2].toLowerCase().startsWith('day') ? 'days' : 'weeks'}`;
+}
+
+/**
+ * @param meds  array of {name, per_day, stock, confidence} from the function
+ * @param meals settings.meals ({breakfast,lunch,dinner}) so doses land after meals
+ */
+export function mapToCards(meds, meals) {
+  const mealTimes = afterMealTimes(meals || {}); // [b+30, l+30, d+30]
+  return meds.map((m, i) => {
+    const g = gridParts(m.per_day);
+    const isSos = /sos/i.test(m.per_day || '');
+    const conf = m.confidence === 'high' ? 0.95 : 0.74;
+    const color = MED_COLORS[i % MED_COLORS.length];
+    const nm = cleanName(m.name);
+
+    let times = [];
+    let frequency = m.per_day || '';
+    let fShort = '';
+    let dose = '1 dose';
+    if (g) {
+      times = [0, 1, 2].filter((k) => g[k] > 0).map((k) => mealTimes[k] || ['8:00 AM', '2:00 PM', '8:00 PM'][k]);
+      fShort = freqShort(g);
+      const total = g.reduce((a, b) => a + b, 0);
+      frequency = `${times.length}× daily`;
+      dose = total > times.length ? `${Math.max(...g)} per dose` : '1 dose';
+    } else if (isSos) {
+      frequency = 'As needed';
+      fShort = 'SOS';
+      times = []; // no fixed reminders for SOS meds
+    } else if (m.per_day) {
+      // a literal phrase like "once a week" — remind once in the morning
+      times = [mealTimes[0] || '8:00 AM'];
+    }
+
+    return {
+      id: (nm || 'med').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6) + i,
+      name: nm,
+      strength: strengthOf(m.name),
+      form: detectForm(m.name),
+      dose,
+      frequency,
+      freqShort: fShort,
+      duration: durationOf(m.stock),
+      instruction: isSos ? 'When needed' : 'After food',
+      instrIcon: isSos ? 'pill' : 'food',
+      purpose: 'From your prescription',
+      confidence: conf,
+      times,
+      raw: `${m.name}${m.per_day ? ' · ' + m.per_day : ''}${m.stock ? ' · ' + m.stock : ''}`,
+      color,
+    };
+  });
+}

@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Medira",
+    "slug": "medira",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "medira",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B3F46"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.medira"
+    },
+    "android": {
+      "package": "com.example.medira",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0B3F46"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Medira needs access to your photos so you can pick a prescription to scan.",
+          "cameraPermission": "Medira needs your camera to photograph a prescription."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0E7C86"
+        }
+      ]
+    ]
+  }
+}
