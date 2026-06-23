@@ -1,54 +1,52 @@
-// screens/SosScreen.js — emergency call screen that cascades through contacts.
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+// screens/SosScreen.js — emergency screen that places REAL phone calls to your contacts.
+// Tapping a contact opens the phone dialer with their number (one tap to call) via Linking.
+import React from 'react';
+import { View, Text, Pressable, ScrollView, Linking, Platform, PermissionsAndroid } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as IntentLauncher from 'expo-intent-launcher';
 import Icon from '../components/Icon';
-import { Chip, Button } from '../components/ui';
+import { Button, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
 
-const filled = (list) => list.filter((c) => c.name && c.phone);
+const filled = (list) => (list || []).filter((c) => c.name && c.phone);
+const telUri = (phone) => `tel:${String(phone).replace(/[^+\d]/g, '')}`;
+
+// Place the call directly (one tap) on Android when CALL_PHONE is granted; otherwise fall
+// back to opening the dialer with the number pre-filled.
+async function placeCall(phone, toast) {
+  const uri = telUri(phone);
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CALL_PHONE, {
+        title: 'Allow Medira to call',
+        message: 'So one tap can call your emergency contact directly.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Not now',
+      });
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        await IntentLauncher.startActivityAsync('android.intent.action.CALL', { data: uri });
+        return;
+      }
+    } catch (_e) { /* fall back to the dialer below */ }
+  }
+  try { await Linking.openURL(uri); } catch (_e) { if (toast) toast('Couldn’t place the call', 'phoneOff'); }
+}
 
 export default function SosScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [s] = useReka();
-  const contacts = s.settings.sos;
+  const [msg, toast] = useToast();
+  const contacts = s.settings.sos || [];
   const reachable = filled(contacts);
   const primary = reachable.find((c) => c.primary) || reachable[0];
-  const queue = primary ? [primary, ...reachable.filter((c) => c.id !== primary.id)] : [];
+  const others = primary ? reachable.filter((c) => c.id !== primary.id) : [];
 
-  const [activeId, setActiveId] = useState((primary || {}).id);
-  const [phase, setPhase] = useState('calling'); // calling → connected
-  const [auto, setAuto] = useState(true);
-  const [missed, setMissed] = useState([]);
-  const active = contacts.find((c) => c.id === activeId) || reachable[0];
-  const qi = queue.findIndex((c) => c.id === activeId);
+  const dial = (c) => placeCall(c.phone, toast);
 
-  useEffect(() => {
-    setPhase('calling');
-    if (auto && qi > -1 && qi < queue.length - 1) {
-      const t = setTimeout(() => {
-        setMissed((m) => [...m, activeId]);
-        setActiveId(queue[qi + 1].id);
-      }, 4500);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => setPhase('connected'), 2600);
-    return () => clearTimeout(t);
-  }, [activeId, auto]);
-
-  const [secs, setSecs] = useState(0);
-  useEffect(() => {
-    if (phase !== 'connected') { setSecs(0); return; }
-    const i = setInterval(() => setSecs((x) => x + 1), 1000);
-    return () => clearInterval(i);
-  }, [phase]);
-  const mmss = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-
-  const call = (id) => { setAuto(false); setActiveId(id); };
-
-  if (!active) {
+  // no contacts yet
+  if (!primary) {
     return (
       <LinearGradient colors={['#C0392B', '#8E2419']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 }}>
         <Text style={{ fontFamily: F.display, fontSize: 24, color: '#fff', textAlign: 'center' }}>No SOS contacts yet</Text>
@@ -61,6 +59,7 @@ export default function SosScreen({ navigation }) {
 
   return (
     <LinearGradient colors={['#C0392B', '#8E2419']} style={{ flex: 1 }}>
+      <Toast msg={msg} />
       {/* header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, height: 32, paddingHorizontal: 12, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.18)' }}>
@@ -72,71 +71,58 @@ export default function SosScreen({ navigation }) {
         </Pressable>
       </View>
 
-      {/* active call */}
-      <View style={{ alignItems: 'center', paddingTop: 26 }}>
+      {/* primary contact — big one-tap call */}
+      <View style={{ alignItems: 'center', paddingTop: 22, paddingHorizontal: 24 }}>
         <View style={{ width: 104, height: 104, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: F.display, fontSize: 40, color: active.color }}>{active.name[0]}</Text>
+          <Text style={{ fontFamily: F.display, fontSize: 40, color: primary.color }}>{primary.name[0]}</Text>
         </View>
-        <Text style={{ fontFamily: F.display, fontSize: 26, color: '#fff', marginTop: 18, letterSpacing: -0.3 }}>{active.name}</Text>
-        <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 3, fontFamily: F.ui }}>{active.relation}</Text>
-        <Text style={{ fontSize: 14.5, fontFamily: F.uiBold, color: '#fff', marginTop: 12 }}>{phase === 'calling' ? 'Calling…' : `In call · ${mmss}`}</Text>
-        {missed.length > 0 && phase === 'calling' ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, height: 28, paddingHorizontal: 12, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.18)' }}>
-            <Icon name="phoneOff" size={14} color="#fff" stroke={2.3} />
-            <Text style={{ color: '#fff', fontSize: 12.5, fontFamily: F.uiBold }}>No answer — calling next</Text>
-          </View>
-        ) : null}
+        <Text style={{ fontFamily: F.display, fontSize: 26, color: '#fff', marginTop: 16, letterSpacing: -0.3 }}>{primary.name}</Text>
+        <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 3, fontFamily: F.ui }}>{primary.relation || 'Primary contact'} · {primary.phone}</Text>
+
+        <Pressable onPress={() => dial(primary)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 68, alignSelf: 'stretch', marginTop: 20, borderRadius: 999, backgroundColor: '#fff' }}>
+          <Icon name="phone" size={26} color="#C0392B" stroke={2.4} />
+          <Text style={{ fontSize: 20, fontFamily: F.uiBold, color: '#C0392B' }}>Call {primary.name.split(' ')[0]} now</Text>
+        </Pressable>
       </View>
 
-      {/* contact list */}
-      <View style={{ flex: 1, marginTop: 18, backgroundColor: C.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-          <Text style={{ fontSize: 12, fontFamily: F.uiHeavy, letterSpacing: 1, color: C.inkFaint, paddingHorizontal: 4, paddingBottom: 10 }}>ALL CONTACTS ARE CALLED IN ORDER</Text>
+      {/* other contacts */}
+      <View style={{ flex: 1, marginTop: 20, backgroundColor: C.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden' }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 90 }}>
+          <Text style={{ fontSize: 12, fontFamily: F.uiHeavy, letterSpacing: 1, color: C.inkFaint, paddingHorizontal: 4, paddingBottom: 10 }}>
+            {others.length ? 'TAP ANYONE TO CALL THEM' : 'ADD MORE PEOPLE WHO CAN HELP'}
+          </Text>
           <View style={{ gap: 10 }}>
-            {contacts.map((c) => {
-              const empty = !(c.name && c.phone);
-              if (empty) {
-                return (
-                  <Pressable key={c.id} onPress={() => navigation.navigate('SosContacts')} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.line, backgroundColor: C.surface }}>
-                    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.paper2, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="plusUser" size={23} color={C.inkFaint} stroke={2.1} />
-                    </View>
-                    <View>
-                      <Text style={{ fontSize: 16, fontFamily: F.uiBold, color: C.inkSoft }}>Add a contact</Text>
-                      <Text style={{ fontSize: 13, color: C.inkFaint, fontFamily: F.ui }}>Someone who can come help</Text>
-                    </View>
-                  </Pressable>
-                );
-              }
-              const isActive = c.id === activeId;
-              const order = queue.findIndex((q) => q.id === c.id) + 1;
-              const wasMissed = missed.includes(c.id) && !isActive;
-              return (
-                <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 18, backgroundColor: C.surface, borderWidth: isActive ? 2 : 1, borderColor: isActive ? C.berry : C.lineSoft }}>
-                  <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontFamily: F.display, fontSize: 20 }}>{c.name[0]}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 16.5, fontFamily: F.uiBold, color: C.ink }}>{c.name}</Text>
-                      {order > 0 ? <Chip tint={order === 1 ? C.berryTint : C.paper2} fg={order === 1 ? C.berry : C.inkSoft} style={{ height: 22, paddingHorizontal: 8 }} textStyle={{ fontSize: 11 }}>{order === 1 ? 'Called 1st' : order === 2 ? 'Called 2nd' : 'Called 3rd'}</Chip> : null}
-                    </View>
-                    <Text style={{ fontSize: 13.5, color: wasMissed ? C.berry : C.inkFaint, fontFamily: wasMissed ? F.uiBold : F.ui }}>{wasMissed ? 'No answer · ' : ''}{c.relation} · {c.phone}</Text>
-                  </View>
-                  <Pressable onPress={() => call(c.id)} style={{ width: 48, height: 48, borderRadius: 99, backgroundColor: isActive ? C.inkFaint : C.sage, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="phone" size={22} color="#fff" stroke={2.2} />
-                  </Pressable>
+            {others.map((c) => (
+              <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.lineSoft }}>
+                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontFamily: F.display, fontSize: 20 }}>{c.name[0]}</Text>
                 </View>
-              );
-            })}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16.5, fontFamily: F.uiBold, color: C.ink }}>{c.name}</Text>
+                  <Text style={{ fontSize: 13.5, color: C.inkFaint, fontFamily: F.ui }}>{c.relation} · {c.phone}</Text>
+                </View>
+                <Pressable onPress={() => dial(c)} style={{ width: 52, height: 52, borderRadius: 99, backgroundColor: C.sage, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="phone" size={23} color="#fff" stroke={2.3} />
+                </Pressable>
+              </View>
+            ))}
+            {/* add-contact tile */}
+            <Pressable onPress={() => navigation.navigate('SosContacts')} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.line, backgroundColor: C.surface }}>
+              <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.paper2, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="plusUser" size={23} color={C.inkFaint} stroke={2.1} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 16, fontFamily: F.uiBold, color: C.inkSoft }}>Add a contact</Text>
+                <Text style={{ fontSize: 13, color: C.inkFaint, fontFamily: F.ui }}>Someone who can come help</Text>
+              </View>
+            </Pressable>
           </View>
         </ScrollView>
 
-        {/* end call */}
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 14, paddingBottom: insets.bottom + 20, alignItems: 'center', backgroundColor: C.paper }}>
-          <Pressable onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, height: 62, paddingHorizontal: 30, borderRadius: 999, backgroundColor: C.berry }}>
-            <Icon name="phoneOff" size={22} color="#fff" stroke={2.3} />
-            <Text style={{ color: '#fff', fontSize: 18, fontFamily: F.uiBold }}>End call</Text>
+        {/* close */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingBottom: insets.bottom + 16, alignItems: 'center', backgroundColor: C.paper }}>
+          <Pressable onPress={() => navigation.goBack()} style={{ height: 52, paddingHorizontal: 40, borderRadius: 999, backgroundColor: C.paper2, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: C.inkSoft, fontSize: 16, fontFamily: F.uiBold }}>Close</Text>
           </Pressable>
         </View>
       </View>
