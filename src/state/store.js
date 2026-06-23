@@ -43,25 +43,33 @@ export function afterMealTimes(meals) {
 }
 
 // ── doses are derived from a medicine's times ────────────────
-// `startMins` = minute-of-day the course begins today (e.g. the scan time). Slots earlier
-// than that are dropped — they aren't back-filled as already "taken"; the course counts
-// only from then on. Remaining slots are 'upcoming' (future) or 'due' (now/overdue & still
-// actionable). Nothing is auto-marked taken — adherence reflects only what the user does.
-function makeDoses(med, startMins = 0) {
+// If the course STARTED earlier today (e.g. you scanned the prescription at 2pm, after
+// breakfast), the slots before that start time are marked 'taken' — so scheduling continues
+// from the next slot instead of from the morning. Derived from the medicine's startedAt so
+// it stays correct across app reloads (not only at the moment of scanning).
+function isSameDay(ts) {
+  const d = new Date(ts); const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+function makeDoses(med) {
   const now = nowMins();
-  return (med.times || [])
-    .map((tm, i) => {
-      const t = toMins(tm);
-      return {
-        id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
-        medId: med.id, med: med.name, strength: med.strength, time: tm, mins: t,
-        note: med.instruction || '',
-        status: t > now ? 'upcoming' : 'due',
-        icon: med.instrIcon || med.icon || 'pill', color: med.color,
-        _start: startMins,
-      };
-    })
-    .filter((d) => d.mins >= startMins);
+  const startMins = (med.startedAt && isSameDay(med.startedAt))
+    ? new Date(med.startedAt).getHours() * 60 + new Date(med.startedAt).getMinutes()
+    : 0;
+  return (med.times || []).map((tm, i) => {
+    const t = toMins(tm);
+    let status;
+    if (t < startMins) status = 'taken';        // before the course started today → already taken
+    else if (t > now) status = 'upcoming';
+    else status = 'due';                          // now or overdue, still actionable
+    return {
+      id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
+      medId: med.id, med: med.name, strength: med.strength, time: tm, mins: t,
+      note: med.instruction || '',
+      status,
+      icon: med.instrIcon || med.icon || 'pill', color: med.color,
+    };
+  });
 }
 
 // ── initial state: empty. The user's data loads from the cloud on login
@@ -138,9 +146,8 @@ export const actions = {
     ].sort((a, b) => a.mins - b.mins);
     return { meds, doses };
   }),
-  // startMins = minute-of-day the course begins today (e.g. scan time) — pre-start slots
-  // are not back-filled. 0 (default) = full day's schedule (manual adds).
-  addMed: (med, startMins = 0) => set((s) => {
+  // pass med.startedAt (e.g. the scan time) so today's pre-start slots count as taken.
+  addMed: (med) => set((s) => {
     const id = uuid();
     const full = {
       id, form: 'Tablet', purpose: med.purpose || 'Added manually', courseDay: null, courseTotal: null,
@@ -150,7 +157,7 @@ export const actions = {
       instrIcon: med.instrIcon || 'pill', tune: med.tune || s.settings.defaultTune, remindersOn: true,
       schedule: `${(med.times || []).length}× daily`, ...med, id,
     };
-    return { meds: [...s.meds, full], doses: [...s.doses, ...makeDoses(full, startMins)].sort((a, b) => a.mins - b.mins) };
+    return { meds: [...s.meds, full], doses: [...s.doses, ...makeDoses(full)].sort((a, b) => a.mins - b.mins) };
   }),
   // record a completed scan into the History list (newest first)
   addScanRecord: (rec) => set((s) => ({ history: [rec, ...(s.history || [])] })),

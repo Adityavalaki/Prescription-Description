@@ -1,5 +1,5 @@
 // screens/HomeScreen.js — Today: greeting, progress ring, up-next, timeline.
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
@@ -24,7 +24,7 @@ export default function HomeScreen({ navigation }) {
   const h = now.getHours();
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
-  const goMed = (medId) => navigation.navigate('MedDetail', { medId });
+  const goMed = useCallback((medId) => navigation.navigate('MedDetail', { medId }), [navigation]);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.paper }}>
@@ -105,7 +105,7 @@ export default function HomeScreen({ navigation }) {
             <View style={{ position: 'relative' }}>
               <View style={{ position: 'absolute', left: 59, top: 8, bottom: 8, width: 2, backgroundColor: C.paper2, borderRadius: 2 }} />
               <View style={{ gap: 10 }}>
-                {doses.map((d) => <HomeDoseRow key={d.id} d={d} A={A} toast={toast} onPress={() => goMed(d.medId)} />)}
+                {doses.map((d) => <HomeDoseRow key={d.id} d={d} A={A} toast={toast} onOpen={goMed} />)}
               </View>
             </View>
           </View>
@@ -116,7 +116,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-function HomeDoseRow({ d, A, toast, onPress }) {
+const HomeDoseRow = React.memo(function HomeDoseRow({ d, A, toast, onOpen }) {
   const st = DOSE_STATE[d.status];
   const [t0, t1] = d.time.split(' ');
   return (
@@ -128,7 +128,7 @@ function HomeDoseRow({ d, A, toast, onPress }) {
       <View style={{ width: 12, alignItems: 'center', paddingTop: 18 }}>
         <View style={{ width: 12, height: 12, borderRadius: 99, backgroundColor: d.status === 'upcoming' ? C.paper : st.color, borderWidth: 2.5, borderColor: d.status === 'upcoming' ? C.line : st.color }} />
       </View>
-      <Card pad={0} onPress={onPress} style={{ flex: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 11, opacity: d.status === 'skipped' ? 0.65 : 1 }}>
+      <Card pad={0} onPress={() => onOpen(d.medId)} style={{ flex: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 11, opacity: d.status === 'skipped' ? 0.65 : 1 }}>
         <MedBadge color={d.color} icon={d.icon} size={38} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14.5, fontFamily: F.uiHeavy, color: C.deep, letterSpacing: -0.2 }}>{d.med} <Text style={{ color: C.inkFaint, fontFamily: F.uiMed, fontSize: 12.5 }}>{d.strength}</Text></Text>
@@ -145,7 +145,7 @@ function HomeDoseRow({ d, A, toast, onPress }) {
       </Card>
     </View>
   );
-}
+});
 
 // local scroll wrapper that keeps the paper bg + horizontal padding
 function ScrollWrap({ children, topPad }) {

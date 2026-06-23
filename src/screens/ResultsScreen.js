@@ -30,8 +30,8 @@ export default function ResultsScreen({ navigation, route }) {
     if (!meds.length) return;
     const scannedAt = route?.params?.scannedAt || Date.now();
     const start = new Date(scannedAt);
-    const startMins = start.getHours() * 60 + start.getMinutes(); // doses count only from scan time today
-    meds.forEach((m) => actions.addMed(m, startMins));
+    // tag each med with the scan time → today's pre-scan doses are marked taken automatically
+    meds.forEach((m) => actions.addMed({ ...m, startedAt: scannedAt }));
     const doctor = route?.params?.doctor || '';
     const clinic = route?.params?.clinic || '';
     actions.addScanRecord({

@@ -20,7 +20,15 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B3F46"
-      }
+      },
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "plugins": [
       "expo-font",
@@ -50,7 +58,8 @@
           "recordAudioAndroid": false
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "./plugins/withMediraAlarm"
     ],
     "extra": {
       "eas": {

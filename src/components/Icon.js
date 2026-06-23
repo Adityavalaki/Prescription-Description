@@ -4,7 +4,7 @@
 import React from 'react';
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 
-export default function Icon({ name, size = 24, color = '#000', stroke = 2, fill = 'none', style }) {
+function Icon({ name, size = 24, color = '#000', stroke = 2, fill = 'none', style }) {
   const p = { fill: 'none', stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round' };
   const dot = (cx, cy, r = 1.3) => <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill={color} />;
 
@@ -60,3 +60,7 @@ export default function Icon({ name, size = 24, color = '#000', stroke = 2, fill
     </Svg>
   );
 }
+
+// Icons are pure functions of their props (all primitives) — memoize so they don't
+// re-render every time a parent screen updates (e.g. on every store change).
+export default React.memo(Icon);

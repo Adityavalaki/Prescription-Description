@@ -121,22 +121,23 @@ export function SectionLabel({ children, action, onAction }) {
 }
 
 // ── Squircle medication badge ────────────────────────────────
-export function MedBadge({ color = C.primary, icon = 'pill', size = 44 }) {
+// Pure (all-primitive props) → memoized so list rows don't re-render it needlessly.
+export const MedBadge = React.memo(function MedBadge({ color = C.primary, icon = 'pill', size = 44 }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.34, alignItems: 'center', justifyContent: 'center', backgroundColor: color, ...shadow('sm', color) }}>
       <Icon name={icon} size={Math.round(size * 0.52)} color="#fff" stroke={2.3} />
     </View>
   );
-}
+});
 
 // ── Duotone icon chip ────────────────────────────────────────
-export function IconChip({ icon, size = 42, tint = C.primaryTint, fg = C.primaryPress, r }) {
+export const IconChip = React.memo(function IconChip({ icon, size = 42, tint = C.primaryTint, fg = C.primaryPress, r }) {
   return (
     <View style={{ width: size, height: size, borderRadius: r != null ? r : size * 0.32, alignItems: 'center', justifyContent: 'center', backgroundColor: tint }}>
       <Icon name={icon} size={Math.round(size * 0.52)} color={fg} stroke={2.3} />
     </View>
   );
-}
+});
 
 // ── Screen scroll container ──────────────────────────────────
 export function Screen({ children, pad = true, bg = C.paper, style, contentStyle }) {

@@ -9,6 +9,7 @@ import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
 import { TUNES } from '../state/tunes';
 import { signOut } from '../services/auth';
+import { openBatteryOptimizationSettings } from '../services/alarm';
 
 function Row({ icon, label, detail, onPress, last, danger }) {
   const body = (
@@ -49,7 +50,8 @@ export default function SettingsScreen({ navigation }) {
         <SectionLabel>Reminders</SectionLabel>
         <Card pad={0} style={{ marginBottom: 20 }}>
           <Row icon="bell" label="Reminder vibration" detail={tune.name} onPress={() => navigation.navigate('AlarmSound', { mode: 'default' })} />
-          <Row icon="clock" label="Snooze length" detail={`${s.settings.snoozeMin || 30} min`} onPress={() => navigation.navigate('Snooze')} last />
+          <Row icon="clock" label="Snooze length" detail={`${s.settings.snoozeMin || 30} min`} onPress={() => navigation.navigate('Snooze')} />
+          <Row icon="bolt" label="Alarm reliability" detail="Battery settings" onPress={() => openBatteryOptimizationSettings()} last />
         </Card>
 
         <SectionLabel>Medications</SectionLabel>

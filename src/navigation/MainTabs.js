@@ -64,7 +64,7 @@ function GlassTabBar({ state, navigation }) {
 export default function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, lazy: true, freezeOnBlur: true }}
       tabBar={(props) => <GlassTabBar {...props} />}
       backBehavior="history"
     >

@@ -6,6 +6,7 @@ import { PageHeader } from '../components/common';
 import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
 import { TUNES, playTune } from '../state/tunes';
+import { previewAlarm } from '../services/alarm';
 
 export default function AlarmSoundScreen({ navigation, route }) {
   const [s, A] = useReka();
@@ -16,7 +17,8 @@ export default function AlarmSoundScreen({ navigation, route }) {
 
   const pick = (id) => {
     setSel(id);
-    playTune(id);
+    playTune(id);          // instant strong vibration
+    previewAlarm(id);      // a short sample of the real alarm sound + vibration (~4s)
     if (isMed) A.setMedTune(medId, id);
     else A.setDefaultTune(id);
   };

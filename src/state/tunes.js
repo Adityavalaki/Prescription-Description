@@ -9,13 +9,15 @@
 
 import { Vibration, Platform } from 'react-native';
 
+// Patterns are deliberately long/repeated so the buzz is strong and unmissable for a
+// medicine alarm (Android can't raise amplitude from JS, so length + repetition = strength).
 export const TUNES = [
-  { id: 'chime', name: 'Soft Pulse', desc: 'One gentle buzz', vibration: [0, 220] },
-  { id: 'marimba', name: 'Double Tap', desc: 'Two quick taps', vibration: [0, 120, 90, 120] },
-  { id: 'bells', name: 'Triple Ring', desc: 'Three light taps', vibration: [0, 90, 70, 90, 70, 90] },
-  { id: 'sunrise', name: 'Long Gentle', desc: 'One long, soft buzz', vibration: [0, 500] },
-  { id: 'pulse', name: 'Heartbeat', desc: 'Soft double rhythm', vibration: [0, 110, 70, 110, 260, 110, 70, 110] },
-  { id: 'classic', name: 'Insistent', desc: 'Strong & clear', vibration: [0, 300, 140, 300, 140, 300] },
+  { id: 'chime', name: 'Single Buzz', desc: 'One firm buzz', vibration: [0, 600] },
+  { id: 'marimba', name: 'Double Buzz', desc: 'Two strong buzzes', vibration: [0, 450, 200, 450] },
+  { id: 'bells', name: 'Triple Buzz', desc: 'Three strong buzzes', vibration: [0, 400, 180, 400, 180, 400] },
+  { id: 'sunrise', name: 'Long Buzz', desc: 'One long, strong buzz', vibration: [0, 1000] },
+  { id: 'pulse', name: 'Heartbeat', desc: 'Repeating double pulse', vibration: [0, 350, 150, 350, 400, 350, 150, 350] },
+  { id: 'classic', name: 'Alarm', desc: 'Insistent, repeating', vibration: [0, 600, 250, 600, 250, 600, 250, 600] },
 ];
 
 export function tuneById(id) {
