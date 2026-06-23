@@ -52,7 +52,7 @@ export async function extractFromBase64(base64, mime = 'image/jpeg') {
   if (!resp.ok || data.error) {
     throw new Error(data.error || `Server error ${resp.status}`);
   }
-  return data.medicines || [];
+  return { medicines: data.medicines || [], doctor: data.doctor || '', clinic: data.clinic || '' };
 }
 
 // ── 3. map the AI output to the app's detection-card shape ──────────

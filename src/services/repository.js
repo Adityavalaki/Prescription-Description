@@ -45,7 +45,8 @@ function rowToMed(r) {
     per_day: r.per_day || '', times: r.times || [],
     duration: r.duration_text || 'Ongoing', stock_weeks: r.stock_weeks,
     courseDay: r.course_day, courseTotal: r.course_total,
-    left: 30, from: r.source === 'scan' ? 'Scanned' : 'Manual entry', scanned: 'Saved',
+    left: 30, startedAt: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+    from: r.source === 'scan' ? 'Scanned' : 'Manual entry', scanned: 'Saved',
     adherence: 1, remindersOn: r.reminders_on, tune: r.tune || 'chime', source: r.source,
     schedule: `${(r.times || []).length}× daily`, frequency: '', freqShort: '', dose: '', purpose: '',
   };
@@ -68,9 +69,52 @@ export async function fetchSos(uid) {
     phone: c.phone || '', primary: c.is_primary, color: '#0E7C86',
   }));
 }
+// ---- prescriptions (scan history) ----
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function rowToHistory(r) {
+  const ms = r.scanned_at ? new Date(r.scanned_at).getTime() : Date.now();
+  return {
+    id: r.id,
+    title: r.clinic || r.doctor || 'Prescription',
+    doctor: r.doctor || '',
+    date: fmtDate(ms),
+    meds: r.med_count || 0,
+    detected: r.raw_json || null,
+    scannedAt: ms,
+  };
+}
+export async function fetchPrescriptions(uid) {
+  const { data } = await supabase.from('prescriptions').select('*').eq('user_id', uid).order('scanned_at', { ascending: false });
+  return (data || []).map(rowToHistory);
+}
+export async function savePrescription(uid, p) {
+  const row = {
+    user_id: uid,
+    doctor: p.doctor || null,
+    clinic: p.clinic || null,
+    med_count: p.medCount ?? (Array.isArray(p.detected) ? p.detected.length : 0),
+    raw_json: p.detected || null,
+    scanned_at: p.scannedAt ? new Date(p.scannedAt).toISOString() : new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from('prescriptions').insert(row).select().single();
+  if (error) throw error;
+  return rowToHistory(data);
+}
+// resolves the signed-in user itself (guest or Google) — no-op for logged-out
+export async function persistScan(scan) {
+  const { data } = await supabase.auth.getSession();
+  const uid = data.session?.user?.id;
+  if (!uid) return null;
+  return savePrescription(uid, scan);
+}
+
 export async function fetchAll(uid) {
-  const [meds, profile, sos] = await Promise.all([fetchMedicines(uid), fetchProfile(uid), fetchSos(uid)]);
-  return { meds, profile, sos };
+  const [meds, profile, sos, history] = await Promise.all([
+    fetchMedicines(uid), fetchProfile(uid), fetchSos(uid), fetchPrescriptions(uid),
+  ]);
+  return { meds, profile, sos, history };
 }
 
 // ---- saves (mirror current state) ----
@@ -88,14 +132,18 @@ export async function saveMedicines(uid, meds) {
 }
 export async function upsertProfile(uid, settings) {
   const meals = settings.meals || {};
+  const age = parseInt(settings.age, 10);
   await supabase.from('profiles').upsert({
     id: uid,
     full_name: settings.name || null,
     phone: settings.phone || null,
+    age: Number.isFinite(age) ? age : null,
+    gender: settings.gender || null,
     breakfast: ampmToSql(meals.breakfast),
     lunch: ampmToSql(meals.lunch),
     dinner: ampmToSql(meals.dinner),
     default_tune: settings.defaultTune || 'chime',
+    snooze_min: settings.snoozeMin || 30,
   });
 }
 export async function saveSos(uid, contacts) {

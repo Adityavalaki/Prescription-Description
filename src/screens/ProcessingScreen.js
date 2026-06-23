@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
-import RxPad from '../components/RxPad';
 import { shadow } from '../components/ui';
 import { C, F } from '../theme/colors';
 import { extractFromBase64, mapToCards } from '../services/extract';
@@ -16,9 +15,11 @@ export default function ProcessingScreen({ navigation, route }) {
   const [done, setDone] = useState(0);
   const [errored, setErrored] = useState(null);
   const spin = useRef(new Animated.Value(0)).current;
+  const beam = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(Animated.timing(spin, { toValue: 1, duration: 800, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.timing(beam, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: true })).start();
     // advance the visible steps while the real request is in flight
     const ts = [600, 1400].map((ms, i) => setTimeout(() => setDone((d) => Math.max(d, i + 1)), ms));
 
@@ -33,11 +34,12 @@ export default function ProcessingScreen({ navigation, route }) {
         return;
       }
       try {
-        const meds = await extractFromBase64(base64, mime);
+        const { medicines, doctor, clinic } = await extractFromBase64(base64, mime);
         if (cancelled) return;
         setDone(3);
-        const detected = mapToCards(meds, getState().settings.meals);
-        setTimeout(() => !cancelled && navigation.replace('Results', { detected }), 500);
+        const detected = mapToCards(medicines, getState().settings.meals);
+        const scannedAt = route?.params?.scannedAt || Date.now();
+        setTimeout(() => !cancelled && navigation.replace('Results', { detected, doctor, clinic, scannedAt }), 500);
       } catch (e) {
         if (!cancelled) setErrored(String(e.message || e));
       }
@@ -70,8 +72,15 @@ export default function ProcessingScreen({ navigation, route }) {
       <Text style={{ fontFamily: F.display, fontSize: 26, letterSpacing: -0.6, color: C.ink }}>Reading your prescription…</Text>
       <Text style={{ fontSize: 14.5, color: C.inkSoft, marginTop: 8, fontFamily: F.ui }}>This usually takes a few seconds.</Text>
 
-      <View style={{ marginTop: 26, borderRadius: 16, overflow: 'hidden', ...shadow('md') }}>
-        <RxPad scale={0.95} compact />
+      {/* scanning animation — neutral document skeleton with a sweeping scan beam */}
+      <View style={{ marginTop: 26, height: 200, borderRadius: 16, backgroundColor: C.surface, borderWidth: 1, borderColor: C.lineSoft, overflow: 'hidden', padding: 18, justifyContent: 'space-between', ...shadow('md') }}>
+        {[0.5, 0.85, 0.68, 0.92, 0.58, 0.8, 0.44].map((w, i) => (
+          <View key={i} style={{ height: 11, borderRadius: 6, backgroundColor: i % 3 === 0 ? C.paper2 : 'rgba(44,40,35,0.06)', width: `${w * 100}%` }} />
+        ))}
+        <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, height: 48, transform: [{ translateY: beam.interpolate({ inputRange: [0, 1], outputRange: [-48, 200] }) }] }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(220,122,87,0.10)' }} />
+          <View style={{ height: 2.5, backgroundColor: C.primary }} />
+        </Animated.View>
       </View>
 
       <View style={{ marginTop: 28, gap: 14 }}>

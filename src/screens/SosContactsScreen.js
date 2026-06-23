@@ -63,7 +63,7 @@ export default function SosContactsScreen({ navigation }) {
                 </View>
                 <SosField label="Name" value={c.name} placeholder={c.kind === 'doctor' ? 'Dr. Name' : 'Full name'} onChange={(v) => A.setSosContact(c.id, { name: v })} />
                 <SosField label={c.kind === 'doctor' ? 'Clinic / role' : 'Relationship'} value={c.relation} placeholder={c.kind === 'doctor' ? 'e.g. Family doctor' : 'e.g. Daughter, Neighbour'} onChange={(v) => A.setSosContact(c.id, { relation: v })} />
-                <SosField label="Phone number" value={c.phone} placeholder="(555) 000-0000" keyboardType="phone-pad" onChange={(v) => A.setSosContact(c.id, { phone: v })} last />
+                <SosField label="Phone number" value={c.phone} placeholder="+91 98765 43210" keyboardType="phone-pad" onChange={(v) => A.setSosContact(c.id, { phone: v })} last />
               </Card>
             );
           })}

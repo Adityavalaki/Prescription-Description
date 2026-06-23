@@ -27,6 +27,7 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import MedDetailScreen from './src/screens/MedDetailScreen';
 import ManualEntryScreen from './src/screens/ManualEntryScreen';
 import AlarmSoundScreen from './src/screens/AlarmSoundScreen';
+import SnoozeScreen from './src/screens/SnoozeScreen';
 import EditReminderScreen from './src/screens/EditReminderScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SosScreen from './src/screens/SosScreen';
@@ -50,16 +51,23 @@ export default function App() {
   });
   const session = useSession(); // undefined = loading, null = logged out, object = logged in
   useCloudSync(session);        // load user data on login, mirror changes to the cloud
+  const [st] = useReka();       // store — for the hydration gate + onboarding decision
 
-  // splash while fonts and the auth session resolve
-  if (!loaded || session === undefined) return <View style={{ flex: 1, backgroundColor: C.deep }} />;
+  // splash while fonts/auth resolve, and (when signed in) until the user's data loads
+  if (!loaded || session === undefined || (session && !st.hydrated)) {
+    return <View style={{ flex: 1, backgroundColor: C.deep }} />;
+  }
+
+  // a signed-in user who hasn't set their age yet still needs the quick onboarding
+  const needsOnboarding = !!session && !st.settings.age;
+  const initialRoute = session ? (needsOnboarding ? 'Profile' : 'Main') : 'Login';
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       {session ? <RemindersBridge /> : null}
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.paper } }}>
+        <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.paper } }}>
           {session ? (
             <Stack.Group>
               <Stack.Screen name="Main" component={MainTabs} />
@@ -69,6 +77,7 @@ export default function App() {
               <Stack.Screen name="MedDetail" component={MedDetailScreen} />
               <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
               <Stack.Screen name="AlarmSound" component={AlarmSoundScreen} />
+              <Stack.Screen name="Snooze" component={SnoozeScreen} />
               <Stack.Screen name="EditReminder" component={EditReminderScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Sos" component={SosScreen} options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />

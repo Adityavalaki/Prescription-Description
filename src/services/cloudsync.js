@@ -11,7 +11,7 @@ export function useCloudSync(session) {
   useEffect(() => {
     const uid = session?.user?.id;
     if (!uid) {
-      actions.hydrate({ meds: [], profile: null, sos: null }); // clear on logout
+      actions.hydrate({ meds: [], profile: null, sos: null, history: [] }); // clear on logout
       return;
     }
 
@@ -19,9 +19,20 @@ export function useCloudSync(session) {
     let timer = null;
     let cancelled = false;
 
+    actions.beginLoad();   // gate the UI until this user's data lands
     fetchAll(uid)
-      .then((data) => { if (!cancelled) { actions.hydrate(data); ready = true; } })
-      .catch((e) => { console.warn('cloud load failed:', e?.message); ready = true; });
+      .then((data) => {
+        if (cancelled) return;
+        actions.hydrate(data);
+        // Google gives us a name even before the profile row catches up — use it.
+        if (!data.profile?.full_name) {
+          const meta = session?.user?.user_metadata || {};
+          const gName = meta.full_name || meta.name || '';
+          if (gName) actions.setName(gName);
+        }
+        ready = true;
+      })
+      .catch((e) => { console.warn('cloud load failed:', e?.message); actions.hydrate({ meds: [], profile: null, sos: null, history: [] }); ready = true; });
 
     const unsub = subscribe(() => {
       if (!ready) return;

@@ -47,7 +47,7 @@ export default function ManualEntryScreen({ navigation, route }) {
       <Field label="Reminder times" hint={`${f.times.length} a day`}><TimePicker times={f.times} onChange={(v) => up('times', v)} /></Field>
       <Field label="Instructions"><Segmented options={['After food', 'Before food', 'With water', 'As needed']} value={f.instruction} onChange={(v) => up('instruction', v)} /></Field>
       <Field label="Colour"><ColorSwatches value={f.color} onChange={(v) => up('color', v)} /></Field>
-      <Field label="Alarm sound">
+      <Field label="Reminder vibration">
         <Pressable onPress={() => navigation.navigate('AlarmSound', { mode: 'default' })} style={{ height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 15 }}>
           <Icon name="bell" size={19} color={C.primary} stroke={2.1} />
           <Text style={{ flex: 1, fontSize: 15, fontFamily: F.uiBold, color: C.ink }}>{tuneName}</Text>

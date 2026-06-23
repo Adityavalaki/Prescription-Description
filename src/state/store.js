@@ -70,9 +70,10 @@ let state = {
   meds: [],
   doses: [],
   history: [],
+  hydrated: false, // true once the user's cloud data has loaded (gates the onboarding decision)
   settings: {
     name: '', phone: '', age: '', gender: '', loggedIn: false,
-    defaultTune: 'chime',
+    defaultTune: 'chime', snoozeMin: 30,
     meals: { breakfast: '8:00 AM', lunch: '1:00 PM', dinner: '7:30 PM' },
     sos: [
       { id: 'doc', kind: 'doctor', name: '', relation: '', phone: '', color: '#DC7A57', primary: true },
@@ -104,8 +105,9 @@ export const actions = {
     const idx = s.doses.findIndex((d) => d.medId === data.medId && (d.status === 'due' || d.status === 'upcoming'));
     if (idx < 0) return {};
     const doses = s.doses.slice();
+    const snz = s.settings.snoozeMin || 30;
     if (action === 'taken') doses[idx] = { ...doses[idx], status: 'taken' };
-    else doses[idx] = { ...doses[idx], mins: doses[idx].mins + 10, time: fromMins(doses[idx].mins + 10), status: 'upcoming' };
+    else doses[idx] = { ...doses[idx], mins: doses[idx].mins + snz, time: fromMins(doses[idx].mins + snz), status: 'upcoming' };
     return { doses: doses.sort((a, b) => a.mins - b.mins) };
   }),
   requestRefill: (medId) => set((s) => ({ meds: s.meds.map((m) => (m.id === medId ? { ...m, left: m.left + 30 } : m)) })),
@@ -116,6 +118,7 @@ export const actions = {
     doses: [...s.doses.filter((d) => d.medId !== medId), ...makeDoses({ ...s.meds.find((m) => m.id === medId), times })].sort((a, b) => a.mins - b.mins),
   })),
   setDefaultTune: (tune) => set((s) => ({ settings: { ...s.settings, defaultTune: tune } })),
+  setSnooze: (min) => set((s) => ({ settings: { ...s.settings, snoozeMin: min } })),
   setName: (name) => set((s) => ({ settings: { ...s.settings, name } })),
   setProfile: (partial) => set((s) => ({ settings: { ...s.settings, ...partial } })),
   setMeals: (meals) => set((s) => ({ settings: { ...s.settings, meals: { ...s.settings.meals, ...meals } } })),
@@ -135,30 +138,45 @@ export const actions = {
     ].sort((a, b) => a.mins - b.mins);
     return { meds, doses };
   }),
-  addMed: (med) => set((s) => {
+  // startMins = minute-of-day the course begins today (e.g. scan time) — pre-start slots
+  // are not back-filled. 0 (default) = full day's schedule (manual adds).
+  addMed: (med, startMins = 0) => set((s) => {
     const id = uuid();
     const full = {
       id, form: 'Tablet', purpose: med.purpose || 'Added manually', courseDay: null, courseTotal: null,
       left: med.left || 30, color: med.color || MED_COLORS[s.meds.length % MED_COLORS.length], icon: 'pill',
       from: 'Manual entry', scanned: 'Today', adherence: 1, freqShort: '', duration: med.duration || 'Ongoing',
+      startedAt: med.startedAt || Date.now(),
       instrIcon: med.instrIcon || 'pill', tune: med.tune || s.settings.defaultTune, remindersOn: true,
       schedule: `${(med.times || []).length}× daily`, ...med, id,
     };
-    return { meds: [...s.meds, full], doses: [...s.doses, ...makeDoses(full)].sort((a, b) => a.mins - b.mins) };
+    return { meds: [...s.meds, full], doses: [...s.doses, ...makeDoses(full, startMins)].sort((a, b) => a.mins - b.mins) };
   }),
+  // record a completed scan into the History list (newest first)
+  addScanRecord: (rec) => set((s) => ({ history: [rec, ...(s.history || [])] })),
+  // mark the store as loading the next user's data (gates onboarding/Main until hydrate)
+  beginLoad: () => set({ hydrated: false }),
   // replace the store from cloud data on login; rebuilds today's doses from the medicines
-  hydrate: ({ meds, profile, sos }) => set((s) => {
-    const next = { meds: meds || [], settings: { ...s.settings } };
+  hydrate: ({ meds, profile, sos, history }) => set((s) => {
+    const next = { meds: meds || [], history: history || [], hydrated: true, settings: { ...s.settings } };
     next.doses = (meds || []).flatMap((m) => makeDoses(m)).sort((a, b) => a.mins - b.mins);
     if (profile) {
       next.settings.name = profile.full_name || '';
       next.settings.phone = profile.phone || s.settings.phone;
+      next.settings.age = profile.age != null ? String(profile.age) : '';
+      next.settings.gender = profile.gender || '';
       next.settings.defaultTune = profile.default_tune || 'chime';
+      next.settings.snoozeMin = profile.snooze_min || 30;
       next.settings.meals = {
         breakfast: sqlToAmpm(profile.breakfast) || s.settings.meals.breakfast,
         lunch: sqlToAmpm(profile.lunch) || s.settings.meals.lunch,
         dinner: sqlToAmpm(profile.dinner) || s.settings.meals.dinner,
       };
+    } else {
+      // logout / fresh user — clear identity so one account never inherits another's details
+      next.settings.name = '';
+      next.settings.age = '';
+      next.settings.gender = '';
     }
     if (sos && sos.length) next.settings.sos = sos;
     return next;

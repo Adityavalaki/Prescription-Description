@@ -1,31 +1,49 @@
-// screens/ResultsScreen.js — detection cards with confidence + confirm bar.
-// (The prototype also has "document" and "review" variants behind a Tweak; the
-//  Cards layout is the default and is ported here.)
+// screens/ResultsScreen.js — review the AI-extracted medicines, then add to plan.
+// No confidence scores shown to the user; instead every medicine is editable via Review.
 import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
-import { Chip, Card, Button, ConfBar, MedBadge } from '../components/ui';
+import { Chip, Card, Button, MedBadge } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-
-function confMeta(v) {
-  if (v >= 0.9) return { c: C.sage, t: C.sageTint, label: 'High confidence' };
-  if (v >= 0.85) return { c: C.amber, t: C.amberTint, label: 'Good match' };
-  return { c: C.berry, t: C.berryTint, label: 'Please review' };
-}
+import { useReka, uuid } from '../state/store';
+import { persistScan } from '../services/repository';
+import ReviewMedSheet from './ReviewMedSheet';
 
 export default function ResultsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [, actions] = useReka();
   const [celebrate, setCelebrate] = useState(false);
 
-  // real AI result handed over from Processing (empty if opened without a scan)
-  const detected = route?.params?.detected || [];
+  // AI result handed over from Processing (empty if opened without a scan). Held in
+  // state so Review edits and removals are reflected before saving.
+  const [meds, setMeds] = useState(route?.params?.detected || []);
+  const [editIdx, setEditIdx] = useState(-1);
+
+  const onSaveEdit = (card) => {
+    setMeds((list) => list.map((m, i) => (i === editIdx ? card : m)));
+    setEditIdx(-1);
+  };
+  const removeAt = (idx) => setMeds((list) => list.filter((_, i) => i !== idx));
 
   const onConfirm = () => {
-    // actually persist every detected medicine into the plan (+ generates doses)
-    detected.forEach((m) => actions.addMed(m));
+    if (!meds.length) return;
+    const scannedAt = route?.params?.scannedAt || Date.now();
+    const start = new Date(scannedAt);
+    const startMins = start.getHours() * 60 + start.getMinutes(); // doses count only from scan time today
+    meds.forEach((m) => actions.addMed(m, startMins));
+    const doctor = route?.params?.doctor || '';
+    const clinic = route?.params?.clinic || '';
+    actions.addScanRecord({
+      id: uuid(),
+      title: clinic || doctor || 'Prescription',
+      doctor,
+      date: start.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+      meds: meds.length,
+      detected: meds,
+      scannedAt,
+    });
+    persistScan({ doctor, clinic, detected: meds, medCount: meds.length, scannedAt }).catch(() => {});
     setCelebrate(true);
     setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }), 1700);
   };
@@ -44,10 +62,17 @@ export default function ResultsScreen({ navigation, route }) {
             <Text style={{ color: C.primaryPress, fontSize: 13.5, fontFamily: F.uiBold }}>Add</Text>
           </Pressable>
         </View>
-        <Text style={{ fontFamily: F.display, fontSize: 27, letterSpacing: -0.6, color: C.ink, marginTop: 16 }}>We found <Text style={{ color: C.primary }}>{detected.length} medication{detected.length === 1 ? '' : 's'}</Text></Text>
-        <Text style={{ fontSize: 14.5, color: C.inkSoft, marginTop: 6, fontFamily: F.ui }}>Check our reading before saving — tap Review on anything unsure.</Text>
+        <Text style={{ fontFamily: F.display, fontSize: 27, letterSpacing: -0.6, color: C.ink, marginTop: 16 }}>We found <Text style={{ color: C.primary }}>{meds.length} medication{meds.length === 1 ? '' : 's'}</Text></Text>
 
-        {detected.length === 0 ? (
+        {/* AI fallibility notice */}
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: C.amberTint, borderRadius: 14, padding: 13, marginTop: 14 }}>
+          <Icon name="info" size={18} color={C.amber} stroke={2.2} />
+          <Text style={{ flex: 1, fontSize: 13, lineHeight: 19, color: C.ink, fontFamily: F.ui }}>
+            AI can misread handwriting. Please <Text style={{ fontFamily: F.uiBold }}>review each medicine and dose</Text> and tap Review to fix anything before saving.
+          </Text>
+        </View>
+
+        {meds.length === 0 ? (
           <Card style={{ padding: 20, marginTop: 20, alignItems: 'center', gap: 6 }}>
             <Text style={{ fontFamily: F.uiBold, fontSize: 15, color: C.ink }}>No medicines detected</Text>
             <Text style={{ fontSize: 13, color: C.inkSoft, textAlign: 'center', fontFamily: F.ui }}>Try a clearer photo, or tap “Add” to enter them by hand.</Text>
@@ -55,56 +80,47 @@ export default function ResultsScreen({ navigation, route }) {
         ) : null}
 
         {/* cards */}
-        <View style={{ gap: 13, marginTop: 20 }}>
-          {detected.map((m) => {
-            const cm = confMeta(m.confidence);
-            const low = m.confidence < 0.85;
-            return (
-              <Card key={m.id} style={{ padding: 16, borderWidth: 1.5, borderColor: low ? C.berryTint : C.lineSoft }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}>
-                  <MedBadge color={m.color} icon="pill" size={48} />
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                      <Text style={{ fontSize: 18, fontFamily: F.uiHeavy, color: C.ink, letterSpacing: -0.2 }}>{m.name}</Text>
-                      <Text style={{ fontSize: 15, fontFamily: F.uiBold, color: m.color }}>{m.strength}</Text>
-                    </View>
-                    <Text style={{ fontSize: 12.5, color: C.inkFaint, marginTop: 1, fontFamily: F.ui }}>{m.purpose}</Text>
+        <View style={{ gap: 13, marginTop: 18 }}>
+          {meds.map((m, idx) => (
+            <Card key={m.id || idx} style={{ padding: 16, borderWidth: 1.5, borderColor: C.lineSoft }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}>
+                <MedBadge color={m.color} icon="pill" size={48} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                    <Text style={{ fontSize: 18, fontFamily: F.uiHeavy, color: C.ink, letterSpacing: -0.2 }}>{m.name}</Text>
+                    {m.strength ? <Text style={{ fontSize: 15, fontFamily: F.uiBold, color: m.color }}>{m.strength}</Text> : null}
                   </View>
+                  <Text style={{ fontSize: 12.5, color: C.inkFaint, marginTop: 1, fontFamily: F.ui }}>{m.form || 'Medicine'}</Text>
                 </View>
-                {/* attribute chips */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 13 }}>
-                  <Chip icon="pill">{m.dose}</Chip>
-                  <Chip icon="clock">{m.frequency}</Chip>
-                  <Chip icon="calendar">{m.duration}</Chip>
-                  <Chip icon={m.instrIcon}>{m.instruction}</Chip>
-                </View>
-                {/* confidence */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 11, fontFamily: F.uiBold, color: cm.c, marginBottom: 5 }}>{cm.label.toUpperCase()}</Text>
-                    <ConfBar value={m.confidence} color={cm.c} />
-                  </View>
-                  {low ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 14, borderRadius: 11, backgroundColor: C.berryTint }}>
-                      <Icon name="edit" size={14} color={C.berry} stroke={2.3} />
-                      <Text style={{ color: C.berry, fontFamily: F.uiBold, fontSize: 13 }}>Review</Text>
-                    </View>
-                  ) : (
-                    <View style={{ width: 30, height: 30, borderRadius: 99, backgroundColor: C.sageTint, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="check" size={16} color={C.sage} stroke={2.6} />
-                    </View>
-                  )}
-                </View>
-              </Card>
-            );
-          })}
+              </View>
+              {/* attribute chips */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 13 }}>
+                <Chip icon="clock">{m.frequency}</Chip>
+                <Chip icon="calendar">{m.duration}</Chip>
+                <Chip icon={m.instrIcon}>{m.instruction}</Chip>
+              </View>
+              {/* actions */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
+                <Pressable onPress={() => setEditIdx(idx)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, borderRadius: 12, backgroundColor: C.primaryTint }}>
+                  <Icon name="edit" size={16} color={C.primaryPress} stroke={2.3} />
+                  <Text style={{ color: C.primaryPress, fontFamily: F.uiBold, fontSize: 14 }}>Review</Text>
+                </Pressable>
+                <Pressable onPress={() => removeAt(idx)} style={{ width: 44, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="x" size={17} color={C.berry} stroke={2.4} />
+                </Pressable>
+              </View>
+            </Card>
+          ))}
         </View>
       </ScrollView>
 
       {/* confirm bar */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 14, paddingBottom: insets.bottom + 14, backgroundColor: C.paper }}>
-        <Button icon="check" onPress={onConfirm}>Add all to my plan</Button>
+        <Button icon="check" onPress={onConfirm} style={{ opacity: meds.length ? 1 : 0.5 }}>Add all to my plan</Button>
       </View>
+
+      {/* review / edit sheet */}
+      <ReviewMedSheet med={editIdx >= 0 ? meds[editIdx] : null} onSave={onSaveEdit} onClose={() => setEditIdx(-1)} />
 
       {/* success overlay */}
       {celebrate ? (

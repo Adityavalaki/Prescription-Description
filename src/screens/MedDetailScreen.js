@@ -1,5 +1,5 @@
 // screens/MedDetailScreen.js — hero, today's doses, course ring, details, source.
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,8 @@ import Icon from '../components/Icon';
 import { Ring, Card, Button, SectionLabel, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
+import { runOutDate, daysLeft } from '../services/doctorVisit';
+import RefillSheet from './RefillSheet';
 
 export default function MedDetailScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -17,13 +19,16 @@ export default function MedDetailScreen({ navigation, route }) {
   const myDoses = s.doses.filter((d) => d.medId === m.id);
   const onCourse = m.courseDay != null;
   const isScan = m.from !== 'Manual entry';
+  const [refillOpen, setRefillOpen] = useState(false);
+  const runOut = runOutDate(m);
+  const left = daysLeft(m);
 
   const details = [
     ['Dose', m.dose, 'pill'],
     ['How often', m.freqShort ? `${m.frequency} (${m.freqShort})` : m.frequency, 'clock'],
     ['Duration', m.duration, 'calendar'],
     ['Instructions', m.instruction, m.instrIcon],
-    ['In stock', `${m.left} ${m.form.toLowerCase()}s`, 'refill'],
+    ...(runOut ? [['Runs out', runOut.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), 'refill']] : []),
   ];
 
   return (
@@ -52,6 +57,18 @@ export default function MedDetailScreen({ navigation, route }) {
         </LinearGradient>
 
         <View style={{ paddingHorizontal: 18, paddingTop: 18 }}>
+          {/* running-out → see the doctor */}
+          {left != null && left <= 5 ? (
+            <Pressable onPress={() => setRefillOpen(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: left <= 3 ? C.berryTint : C.amberTint, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+              <Icon name="refill" size={20} color={left <= 3 ? C.berry : C.amber} stroke={2.2} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14.5, fontFamily: F.uiBold, color: C.ink }}>{left <= 0 ? 'This medicine has run out' : `Running low — ${left} day${left === 1 ? '' : 's'} left`}</Text>
+                <Text style={{ fontSize: 12.5, color: C.inkSoft, fontFamily: F.ui, marginTop: 1 }}>Tap to plan a doctor visit for a repeat prescription</Text>
+              </View>
+              <Icon name="chevR" size={16} color={C.inkFaint} stroke={2.2} />
+            </Pressable>
+          ) : null}
+
           {/* today */}
           <SectionLabel>Today</SectionLabel>
           <Card pad={6}>
@@ -121,10 +138,12 @@ export default function MedDetailScreen({ navigation, route }) {
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 22 }}>
             <Button variant="ghost" icon="bell" onPress={() => navigation.navigate('EditReminder', { medId: m.id })}>Edit reminders</Button>
-            <Button variant="soft" icon="refill" full={false} onPress={() => { A.requestRefill(m.id); toast('Refill requested — 30 added', 'refill'); }}>Refill</Button>
+            <Button variant="soft" icon="refill" full={false} onPress={() => setRefillOpen(true)}>Refill</Button>
           </View>
         </View>
       </ScrollView>
+
+      <RefillSheet med={refillOpen ? m : null} onClose={() => setRefillOpen(false)} />
     </View>
   );
 }

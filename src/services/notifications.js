@@ -16,9 +16,12 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { TUNES, tuneById } from '../state/tunes';
 
-const CHANNEL_ID = 'medication-reminders';
 const CATEGORY_ID = 'dose';
+
+// one Android notification channel per tune, so each medicine vibrates with its pattern
+export function medChannelId(tune) { return `med-rem-${tuneById(tune).id}`; }
 
 // ── 1. one-time setup (handler + Android channel + action buttons) ──
 let configured = false;
@@ -37,19 +40,22 @@ export async function configureNotifications() {
   });
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Medication reminders',
-      importance: Notifications.AndroidImportance.MAX,
-      sound: 'default',
-      vibrationPattern: [0, 250, 250, 250],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    });
+    // a channel per tune — Android ties the vibration pattern to the channel
+    for (const t of TUNES) {
+      await Notifications.setNotificationChannelAsync(medChannelId(t.id), {
+        name: `Reminders · ${t.name}`,
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'default',
+        vibrationPattern: t.vibration,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      });
+    }
   }
 
   // "Taken" / "Snooze" buttons on the notification
   await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     { identifier: 'taken', buttonTitle: 'Taken', options: { opensAppToForeground: false } },
-    { identifier: 'snooze', buttonTitle: 'Snooze 10m', options: { opensAppToForeground: false } },
+    { identifier: 'snooze', buttonTitle: 'Snooze', options: { opensAppToForeground: false } },
   ]);
 }
 
@@ -101,7 +107,7 @@ export async function syncFromMeds(meds = []) {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: hm.hour,
           minute: hm.minute,
-          channelId: CHANNEL_ID,
+          channelId: medChannelId(med.tune),
         },
       });
       scheduled += 1;

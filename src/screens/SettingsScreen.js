@@ -48,15 +48,15 @@ export default function SettingsScreen({ navigation }) {
 
         <SectionLabel>Reminders</SectionLabel>
         <Card pad={0} style={{ marginBottom: 20 }}>
-          <Row icon="bell" label="Default alarm sound" detail={tune.name} onPress={() => navigation.navigate('AlarmSound', { mode: 'default' })} />
-          <Row icon="clock" label="Snooze length" detail="30 min" onPress={() => toast('Snooze set to 30 min', 'clock')} last />
+          <Row icon="bell" label="Reminder vibration" detail={tune.name} onPress={() => navigation.navigate('AlarmSound', { mode: 'default' })} />
+          <Row icon="clock" label="Snooze length" detail={`${s.settings.snoozeMin || 30} min`} onPress={() => navigation.navigate('Snooze')} last />
         </Card>
 
         <SectionLabel>Medications</SectionLabel>
         <Card pad={0} style={{ marginBottom: 20 }}>
           <Row icon="plus" label="Add medication manually" onPress={() => navigation.navigate('ManualEntry')} />
           <Row icon="scan" label="Scan a prescription" onPress={() => navigation.navigate('Scan')} />
-          <Row icon="refill" label="Pharmacy & refills" detail="Northgate" onPress={() => toast('Refills managed at Northgate Pharmacy', 'refill')} last />
+          <Row icon="refill" label="Refills & doctor visits" onPress={() => navigation.navigate('Main', { screen: 'Meds' })} last />
         </Card>
 
         <SectionLabel>Emergency</SectionLabel>

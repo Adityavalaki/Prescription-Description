@@ -63,6 +63,18 @@ export default function HomeScreen({ navigation }) {
             </View>
           </Card>
 
+          {/* empty state — no medicines yet */}
+          {s.meds.length === 0 ? (
+            <Card style={{ marginTop: 20, padding: 22, alignItems: 'center', gap: 10 }}>
+              <IconChip icon="scan" size={52} />
+              <Text style={{ fontFamily: F.uiHeavy, fontSize: 16.5, color: C.deep, marginTop: 4 }}>No medicines yet</Text>
+              <Text style={{ fontSize: 13.5, color: C.inkSoft, textAlign: 'center', lineHeight: 20, fontFamily: F.ui }}>
+                Scan a prescription and we'll set up your doses and reminders automatically.
+              </Text>
+              <Button icon="scan" onPress={() => navigation.navigate('Scan')} style={{ marginTop: 6 }}>Scan a prescription</Button>
+            </Card>
+          ) : null}
+
           {/* up next */}
           {due ? (
             <View style={{ marginTop: 20 }}>
@@ -80,13 +92,14 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 15 }}>
                   <Button size="md" icon="check" onPress={() => { A.markTaken(due.id); toast('Marked as taken — nice work', 'check'); }}>Mark as taken</Button>
-                  <Button size="md" variant="soft" icon="snooze" full={false} onPress={() => { A.snooze(due.id, 30); toast('Snoozed 30 minutes', 'snooze'); }}>30 min</Button>
+                  <Button size="md" variant="soft" icon="snooze" full={false} onPress={() => { const sn = s.settings.snoozeMin || 30; A.snooze(due.id, sn); toast(`Snoozed ${sn} minutes`, 'snooze'); }}>{s.settings.snoozeMin || 30} min</Button>
                 </View>
               </Card>
             </View>
           ) : null}
 
           {/* timeline schedule */}
+          {doses.length > 0 ? (
           <View style={{ marginTop: 22, paddingBottom: 130 }}>
             <SectionLabel action="See all" onAction={() => navigation.navigate('Schedule')}>Today's schedule</SectionLabel>
             <View style={{ position: 'relative' }}>
@@ -96,6 +109,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
           </View>
+          ) : null}
         </ScrollWrap>
       </View>
     </View>

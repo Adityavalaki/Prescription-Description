@@ -6,6 +6,7 @@ import { DeepHeader } from '../components/common';
 import { Chip, Card, MedBadge, IconChip } from '../components/ui';
 import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
+import { daysLeft } from '../services/doctorVisit';
 
 export default function MedsScreen({ navigation }) {
   const [s] = useReka();
@@ -30,12 +31,13 @@ export default function MedsScreen({ navigation }) {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, paddingTop: 16, gap: 12 }}>
           {s.meds.map((m) => {
             const onCourse = m.courseDay != null;
-            const lowStock = m.left <= 6;
+            const dleft = daysLeft(m);
+            const lowStock = dleft != null && dleft <= 5;
             return (
               <Card key={m.id} pad={14} onPress={() => goMed(m.id)} style={{ width: '47%', flexGrow: 1, gap: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <MedBadge color={m.color} icon="pill" size={44} />
-                  {lowStock ? <Chip tint={C.berryTint} fg={C.berry} style={{ height: 24, paddingHorizontal: 9 }} textStyle={{ fontSize: 11 }}>{m.left} left</Chip> : null}
+                  {lowStock ? <Chip tint={C.berryTint} fg={C.berry} style={{ height: 24, paddingHorizontal: 9 }} textStyle={{ fontSize: 11 }}>{dleft <= 0 ? 'Ran out' : `${dleft}d left`}</Chip> : null}
                 </View>
                 <View>
                   <Text style={{ fontSize: 16, fontFamily: F.uiHeavy, color: C.deep, letterSpacing: -0.2 }}>{m.name}</Text>
