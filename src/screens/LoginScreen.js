@@ -1,13 +1,12 @@
-// screens/LoginScreen.js — name + phone, or "Continue with Google".
+// screens/LoginScreen.js — Google sign-in (+ guest).
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Logo } from '../components/common';
-import { Button } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { signInWithGoogle, signInGuest } from '../services/auth';
 
 function GoogleG() {
   return (
@@ -20,65 +19,76 @@ function GoogleG() {
   );
 }
 
-function Input({ value, onChange, placeholder, icon, keyboardType }) {
-  const [focus, setFocus] = useState(false);
-  return (
-    <View style={{ position: 'relative', justifyContent: 'center' }}>
-      {icon ? <View style={{ position: 'absolute', left: 15, zIndex: 1 }}><Icon name={icon} size={19} color={C.inkFaint} stroke={2} /></View> : null}
-      <TextInput
-        value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={C.inkFaint}
-        keyboardType={keyboardType} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-        style={{ height: 54, borderRadius: 15, borderWidth: 1.5, borderColor: focus ? C.primary : C.line, backgroundColor: C.surface, paddingLeft: icon ? 44 : 16, paddingRight: 15, fontSize: 16.5, fontFamily: F.ui, color: C.ink }}
-      />
-    </View>
-  );
-}
-
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const [, A] = useReka();
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const valid = name.trim().length > 1 && phone.replace(/\D/g, '').length >= 7;
+  const [busy, setBusy] = useState('');   // '' | 'google' | 'guest'
+  const [err, setErr] = useState('');
 
-  const cont = (n, p) => {
-    A.setProfile({ name: (n || name).trim() || 'Maya', phone: p || phone, loggedIn: true });
-    navigation.navigate('Profile');
+  const google = async () => {
+    setErr(''); setBusy('google');
+    try {
+      await signInWithGoogle();   // session change navigates us into the app
+    } catch (e) {
+      const m = String(e?.message || e);
+      setErr(/native|not available|RNGoogleSignin|PlayServices/i.test(m)
+        ? 'Google sign-in needs the dev build — use “Continue as guest” to test in Expo Go.'
+        : (/cancel/i.test(m) ? '' : m));
+    } finally { setBusy(''); }
   };
-  const google = () => { setName('Maya Ferreira'); setPhone('(555) 018-2245'); cont('Maya Ferreira', '(555) 018-2245'); };
+
+  const guest = async () => {
+    setErr(''); setBusy('guest');
+    try {
+      await signInGuest();        // session change navigates us into the app
+    } catch (e) {
+      const m = String(e?.message || e);
+      setErr(m.includes('disabled')
+        ? 'Guest mode is off — enable “Allow anonymous sign-ins” in Supabase → Authentication.'
+        : m);
+    } finally { setBusy(''); }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.paper }} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 22, paddingTop: insets.top + 16, paddingBottom: 36 }} keyboardShouldPersistTaps="handled">
       <Logo size={28} />
-      <View style={{ marginTop: 40 }}>
-        <Text style={{ fontFamily: F.display, fontSize: 32, lineHeight: 35, letterSpacing: -0.6, color: C.ink }}>Hello there</Text>
-        <Text style={{ fontSize: 16, lineHeight: 24, color: C.inkSoft, marginTop: 10, fontFamily: F.ui }}>Let's create your account so your medicines and reminders stay safe and synced.</Text>
+      <View style={{ marginTop: 44 }}>
+        <Text style={{ fontFamily: F.display, fontSize: 32, lineHeight: 35, letterSpacing: -0.6, color: C.ink }}>Welcome to Medira</Text>
+        <Text style={{ fontSize: 16, lineHeight: 24, color: C.inkSoft, marginTop: 10, fontFamily: F.ui }}>
+          Sign in so your medicines and reminders stay safe and synced across your devices.
+        </Text>
       </View>
 
-      <View style={{ gap: 14, marginTop: 30 }}>
-        <View>
-          <Text style={{ fontSize: 13.5, fontFamily: F.uiBold, color: C.inkSoft, marginBottom: 8 }}>Your name</Text>
-          <Input value={name} onChange={setName} placeholder="e.g. Maya Ferreira" icon="user" />
-        </View>
-        <View>
-          <Text style={{ fontSize: 13.5, fontFamily: F.uiBold, color: C.inkSoft, marginBottom: 8 }}>Phone number</Text>
-          <Input value={phone} onChange={setPhone} placeholder="(555) 000-0000" icon="bell" keyboardType="phone-pad" />
-        </View>
-      </View>
+      <View style={{ flex: 1, minHeight: 40 }} />
 
-      <View style={{ flex: 1, minHeight: 24 }} />
+      {/* Google */}
+      <Pressable
+        onPress={() => !busy && google()}
+        style={{ height: 56, borderRadius: 999, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 11, opacity: busy ? 0.6 : 1 }}>
+        <GoogleG />
+        <Text style={{ fontSize: 16.5, fontFamily: F.uiBold, color: C.ink }}>
+          {busy === 'google' ? 'Signing in…' : 'Continue with Google'}
+        </Text>
+      </Pressable>
 
-      <Button icon="arrowR" onPress={() => valid && cont()} style={{ opacity: valid ? 1 : 0.5 }}>Continue</Button>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16 }}>
         <View style={{ height: 1, flex: 1, backgroundColor: C.line }} />
         <Text style={{ fontSize: 13, color: C.inkFaint, fontFamily: F.uiMed }}>or</Text>
         <View style={{ height: 1, flex: 1, backgroundColor: C.line }} />
       </View>
-      <Pressable onPress={google} style={{ height: 54, borderRadius: 999, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 11 }}>
-        <GoogleG />
-        <Text style={{ fontSize: 16, fontFamily: F.uiBold, color: C.ink }}>Continue with Google</Text>
+
+      {/* Guest */}
+      <Pressable
+        onPress={() => !busy && guest()}
+        style={{ height: 54, borderRadius: 999, backgroundColor: C.primaryTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy ? 0.6 : 1 }}>
+        <Icon name="user" size={19} color={C.primaryPress} stroke={2.2} />
+        <Text style={{ fontSize: 16, fontFamily: F.uiBold, color: C.primaryPress }}>
+          {busy === 'guest' ? 'Continuing…' : 'Continue as guest'}
+        </Text>
       </Pressable>
-      <Text style={{ fontSize: 11.5, color: C.inkFaint, textAlign: 'center', marginTop: 16, lineHeight: 17, fontFamily: F.ui }}>By continuing you agree to Medira's Terms & Privacy Policy.</Text>
+
+      {err ? <Text style={{ fontSize: 13, color: C.berry, marginTop: 16, textAlign: 'center', fontFamily: F.uiMed }}>{err}</Text> : null}
+
+      <Text style={{ fontSize: 11.5, color: C.inkFaint, textAlign: 'center', marginTop: 18, lineHeight: 17, fontFamily: F.ui }}>By continuing you agree to Medira's Terms & Privacy Policy.</Text>
     </ScrollView>
   );
 }

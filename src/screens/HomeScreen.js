@@ -18,7 +18,11 @@ export default function HomeScreen({ navigation }) {
   const total = doses.length;
   const due = doses.find((d) => d.status === 'due');
   const pct = total ? taken / total : 0;
-  const name = (s.settings.name || 'Maya').split(' ')[0];
+  const name = (s.settings.name || '').split(' ')[0];
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+  const h = now.getHours();
+  const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
   const goMed = (medId) => navigation.navigate('MedDetail', { medId });
 
@@ -30,8 +34,8 @@ export default function HomeScreen({ navigation }) {
           {/* top bar */}
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, color: C.inkFaint, fontFamily: F.uiBold, letterSpacing: 0.6 }}>SATURDAY, JUNE 8</Text>
-              <Text style={{ fontFamily: F.display, fontSize: 26, letterSpacing: -0.3, color: C.deep, marginTop: 2 }}>Good afternoon, {name}</Text>
+              <Text style={{ fontSize: 13, color: C.inkFaint, fontFamily: F.uiBold, letterSpacing: 0.6 }}>{dateLabel}</Text>
+              <Text style={{ fontFamily: F.display, fontSize: 26, letterSpacing: -0.3, color: C.deep, marginTop: 2 }}>{greeting}{name ? `, ${name}` : ''}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingTop: 2 }}>
               <SosPill onPress={() => navigation.navigate('Sos')} />

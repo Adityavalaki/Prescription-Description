@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Chip, Card, Button, ConfBar, MedBadge } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { DETECTED } from '../data/mockData';
 import { useReka } from '../state/store';
 
 function confMeta(v) {
@@ -21,8 +20,8 @@ export default function ResultsScreen({ navigation, route }) {
   const [, actions] = useReka();
   const [celebrate, setCelebrate] = useState(false);
 
-  // real AI result from Processing; falls back to the sample if opened directly
-  const detected = route?.params?.detected || DETECTED;
+  // real AI result handed over from Processing (empty if opened without a scan)
+  const detected = route?.params?.detected || [];
 
   const onConfirm = () => {
     // actually persist every detected medicine into the plan (+ generates doses)

@@ -20,7 +20,10 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B3F46"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-font",
@@ -36,7 +39,13 @@
         {
           "color": "#0E7C86"
         }
-      ]
-    ]
+      ],
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f4c9457f-7516-4512-aa3d-04fcf71e20eb"
+      }
+    }
   }
 }

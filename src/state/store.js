@@ -3,8 +3,21 @@
 // that re-renders subscribers on any state change.
 
 import React from 'react';
-import { RX_SOURCE, DETECTED, MEDS, TODAY, HISTORY, ADHERENCE_14 } from '../data/mockData';
 import { MED_COLORS } from '../theme/colors';
+
+// client-side uuid (v4) so medicine ids line up with the DB's uuid columns
+export function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0; const v = c === 'x' ? r : (r & 0x3) | 0x8; return v.toString(16);
+  });
+}
+// "08:00:00" (Postgres time) -> "8:00 AM"
+function sqlToAmpm(t) {
+  if (!t) return null;
+  const [H, M] = String(t).split(':');
+  let h = +H; const ap = h >= 12 ? 'PM' : 'AM'; let h12 = h % 12; if (h12 === 0) h12 = 12;
+  return `${h12}:${M} ${ap}`;
+}
 
 // ── time helpers ─────────────────────────────────────────────
 export function toMins(s) {
@@ -22,48 +35,48 @@ export function fromMins(x) {
   if (h12 === 0) h12 = 12;
   return `${h12}:${String(mm).padStart(2, '0')} ${ap}`;
 }
-export const NOW_MINS = 14 * 60 + 5; // app's "current time" ~2:05 PM
+// live "current time" in minutes since midnight (real device clock)
+export function nowMins() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
 export function plusMin(timeStr, n) { return fromMins(toMins(timeStr) + n); }
 export function afterMealTimes(meals) {
   return [meals.breakfast, meals.lunch, meals.dinner].filter(Boolean).map((t) => plusMin(t, 30));
 }
 
-// ── build initial state ──────────────────────────────────────
-function enrichMed(m) {
-  const d = DETECTED.find((x) => x.id === m.id) || {};
-  return {
-    ...m,
-    dose: d.dose || '1 tablet', frequency: d.frequency || m.schedule, freqShort: d.freqShort || '',
-    duration: d.duration || 'Ongoing', instruction: d.instruction || m.schedule, instrIcon: d.instrIcon || 'pill',
-    times: d.times || ['9:00 AM'], tune: m.tune || 'chime', remindersOn: true,
-  };
-}
-function makeDoses(med) {
-  return (med.times || []).map((tm, i) => ({
-    id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
-    medId: med.id, med: med.name, strength: med.strength, time: tm, mins: toMins(tm),
-    note: med.instruction || '',
-    status: toMins(tm) > NOW_MINS ? 'upcoming' : NOW_MINS - toMins(tm) <= 60 ? 'due' : 'taken',
-    icon: med.instrIcon || med.icon || 'pill', color: med.color,
-  }));
+// ── doses are derived from a medicine's times ────────────────
+// `startMins` = minute-of-day the course begins today (e.g. the scan time). Slots earlier
+// than that are dropped — they aren't back-filled as already "taken"; the course counts
+// only from then on. Remaining slots are 'upcoming' (future) or 'due' (now/overdue & still
+// actionable). Nothing is auto-marked taken — adherence reflects only what the user does.
+function makeDoses(med, startMins = 0) {
+  const now = nowMins();
+  return (med.times || [])
+    .map((tm, i) => {
+      const t = toMins(tm);
+      return {
+        id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
+        medId: med.id, med: med.name, strength: med.strength, time: tm, mins: t,
+        note: med.instruction || '',
+        status: t > now ? 'upcoming' : 'due',
+        icon: med.instrIcon || med.icon || 'pill', color: med.color,
+        _start: startMins,
+      };
+    })
+    .filter((d) => d.mins >= startMins);
 }
 
-const initialDoses = TODAY.map((d) => {
-  const medId = d.med.toLowerCase().includes('amox') ? 'amox' : d.med.toLowerCase().includes('ibu') ? 'ibu' : 'panto';
-  return { ...d, medId, mins: toMins(d.time) };
-});
-
+// ── initial state: empty. The user's data loads from the cloud on login
+//    (services/cloudsync.js → actions.hydrate), and changes mirror back to the DB. ──
 let state = {
-  meds: MEDS.map(enrichMed),
-  doses: initialDoses,
-  history: HISTORY.slice(),
+  meds: [],
+  doses: [],
+  history: [],
   settings: {
-    name: 'Maya', phone: '', age: '', gender: '', loggedIn: false,
+    name: '', phone: '', age: '', gender: '', loggedIn: false,
     defaultTune: 'chime',
     meals: { breakfast: '8:00 AM', lunch: '1:00 PM', dinner: '7:30 PM' },
     sos: [
-      { id: 'doc', kind: 'doctor', name: 'Dr. A. Mehta', relation: 'Doctor · Sunrise Family Clinic', phone: '(555) 014-7788', color: '#DC7A57', primary: true },
-      { id: 'c2', kind: 'family', name: 'Lena Ferreira', relation: 'Daughter', phone: '(555) 062-3390', color: '#6E9B6B', primary: false },
+      { id: 'doc', kind: 'doctor', name: '', relation: '', phone: '', color: '#DC7A57', primary: true },
+      { id: 'c2', kind: 'family', name: '', relation: '', phone: '', color: '#6E9B6B', primary: false },
       { id: 'c3', kind: 'family', name: '', relation: '', phone: '', color: '#5B7FB0', primary: false },
     ],
   },
@@ -81,7 +94,7 @@ function set(updater) {
 export const actions = {
   markTaken: (id) => set((s) => ({ doses: s.doses.map((d) => (d.id === id ? { ...d, status: 'taken' } : d)) })),
   skip: (id) => set((s) => ({ doses: s.doses.map((d) => (d.id === id ? { ...d, status: 'skipped' } : d)) })),
-  undo: (id) => set((s) => ({ doses: s.doses.map((d) => (d.id === id ? { ...d, status: d.mins <= NOW_MINS ? 'due' : 'upcoming' } : d)) })),
+  undo: (id) => set((s) => ({ doses: s.doses.map((d) => (d.id === id ? { ...d, status: d.mins <= nowMins() ? 'due' : 'upcoming' } : d)) })),
   snooze: (id, min = 15) => set((s) => ({
     doses: s.doses.map((d) => (d.id === id ? { ...d, mins: d.mins + min, time: fromMins(d.mins + min), status: 'upcoming' } : d)).sort((a, b) => a.mins - b.mins),
   })),
@@ -123,7 +136,7 @@ export const actions = {
     return { meds, doses };
   }),
   addMed: (med) => set((s) => {
-    const id = (med.name || 'med').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) + Date.now().toString().slice(-4);
+    const id = uuid();
     const full = {
       id, form: 'Tablet', purpose: med.purpose || 'Added manually', courseDay: null, courseTotal: null,
       left: med.left || 30, color: med.color || MED_COLORS[s.meds.length % MED_COLORS.length], icon: 'pill',
@@ -133,9 +146,29 @@ export const actions = {
     };
     return { meds: [...s.meds, full], doses: [...s.doses, ...makeDoses(full)].sort((a, b) => a.mins - b.mins) };
   }),
+  // replace the store from cloud data on login; rebuilds today's doses from the medicines
+  hydrate: ({ meds, profile, sos }) => set((s) => {
+    const next = { meds: meds || [], settings: { ...s.settings } };
+    next.doses = (meds || []).flatMap((m) => makeDoses(m)).sort((a, b) => a.mins - b.mins);
+    if (profile) {
+      next.settings.name = profile.full_name || '';
+      next.settings.phone = profile.phone || s.settings.phone;
+      next.settings.defaultTune = profile.default_tune || 'chime';
+      next.settings.meals = {
+        breakfast: sqlToAmpm(profile.breakfast) || s.settings.meals.breakfast,
+        lunch: sqlToAmpm(profile.lunch) || s.settings.meals.lunch,
+        dinner: sqlToAmpm(profile.dinner) || s.settings.meals.dinner,
+      };
+    }
+    if (sos && sos.length) next.settings.sos = sos;
+    return next;
+  }),
 };
 
 export function getState() { return state; }
+
+// subscribe to any store change; returns an unsubscribe fn (used by cloud sync)
+export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 
 // React hook — subscribe to the store, returns [state, actions]
 export function useReka() {

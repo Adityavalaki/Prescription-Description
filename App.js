@@ -1,4 +1,4 @@
-// App.js — Medira root. Loads fonts, sets up the navigation stack.
+// App.js — Medira root. Loads fonts, gates on the auth session, sets up navigation.
 import React from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,14 +14,8 @@ import { C } from './src/theme/colors';
 import MainTabs from './src/navigation/MainTabs';
 import { useReka } from './src/state/store';
 import { useReminders } from './src/services/notifications';
-
-// Mounts the medication-reminder engine app-wide. UI-independent — keeps reminders
-// scheduled from the store and routes notification Taken/Snooze taps back to the store.
-function RemindersBridge() {
-  const [s, A] = useReka();
-  useReminders(s.meds, (action, data) => A.reminderAction(action, data));
-  return null;
-}
+import { useSession } from './src/services/auth';
+import { useCloudSync } from './src/services/cloudsync';
 
 import LoginScreen from './src/screens/LoginScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -38,6 +32,14 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import SosScreen from './src/screens/SosScreen';
 import SosContactsScreen from './src/screens/SosContactsScreen';
 
+// Reminder engine, app-wide. UI-independent — keeps reminders scheduled from the store
+// and routes notification Taken/Snooze taps back to the store.
+function RemindersBridge() {
+  const [s, A] = useReka();
+  useReminders(s.meds, (action, data) => A.reminderAction(action, data));
+  return null;
+}
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -46,33 +48,41 @@ export default function App() {
     Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold, Figtree_800ExtraBold,
     Caveat_600SemiBold,
   });
+  const session = useSession(); // undefined = loading, null = logged out, object = logged in
+  useCloudSync(session);        // load user data on login, mirror changes to the cloud
 
-  if (!loaded) return <View style={{ flex: 1, backgroundColor: C.deep }} />;
+  // splash while fonts and the auth session resolve
+  if (!loaded || session === undefined) return <View style={{ flex: 1, backgroundColor: C.deep }} />;
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <RemindersBridge />
+      {session ? <RemindersBridge /> : null}
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.paper } }}>
-          {/* onboarding */}
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="MealTimes" component={MealTimesScreen} />
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          {/* main app */}
-          <Stack.Screen name="Main" component={MainTabs} />
-          {/* flows presented over the tabs */}
-          <Stack.Screen name="Scan" component={ScanScreen} options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="Processing" component={ProcessingScreen} options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="Results" component={ResultsScreen} options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="MedDetail" component={MedDetailScreen} />
-          <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
-          <Stack.Screen name="AlarmSound" component={AlarmSoundScreen} />
-          <Stack.Screen name="EditReminder" component={EditReminderScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Sos" component={SosScreen} options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="SosContacts" component={SosContactsScreen} />
+        <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.paper } }}>
+          {session ? (
+            <Stack.Group>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="Scan" component={ScanScreen} options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="Processing" component={ProcessingScreen} options={{ presentation: 'fullScreenModal' }} />
+              <Stack.Screen name="Results" component={ResultsScreen} options={{ presentation: 'fullScreenModal' }} />
+              <Stack.Screen name="MedDetail" component={MedDetailScreen} />
+              <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
+              <Stack.Screen name="AlarmSound" component={AlarmSoundScreen} />
+              <Stack.Screen name="EditReminder" component={EditReminderScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Sos" component={SosScreen} options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="SosContacts" component={SosContactsScreen} />
+              {/* onboarding screens kept registered so Settings/profile flows can reach them */}
+              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="MealTimes" component={MealTimesScreen} />
+              <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            </Stack.Group>
+          ) : (
+            <Stack.Group>
+              <Stack.Screen name="Login" component={LoginScreen} />
+            </Stack.Group>
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

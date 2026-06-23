@@ -8,6 +8,7 @@ import { Card, SectionLabel, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
 import { useReka } from '../state/store';
 import { TUNES } from '../state/tunes';
+import { signOut } from '../services/auth';
 
 function Row({ icon, label, detail, onPress, last, danger }) {
   const body = (
@@ -64,9 +65,13 @@ export default function SettingsScreen({ navigation }) {
         </Card>
 
         <SectionLabel>About</SectionLabel>
-        <Card pad={0} style={{ marginBottom: 30 }}>
-          <Row icon="shield" label="Privacy & data" onPress={() => toast('Your data stays on this device', 'shield')} />
+        <Card pad={0} style={{ marginBottom: 20 }}>
+          <Row icon="shield" label="Privacy & data" onPress={() => toast('Your data is synced securely to your account', 'shield')} />
           <Row icon="info" label="Help & support" onPress={() => toast('Support: help@medira.app', 'info')} last />
+        </Card>
+
+        <Card pad={0} style={{ marginBottom: 30 }}>
+          <Row icon="x" label="Sign out" danger last onPress={async () => { await signOut(); }} />
         </Card>
       </ScrollView>
     </View>

@@ -27,9 +27,9 @@ export default function ProcessingScreen({ navigation, route }) {
 
     let cancelled = false;
     (async () => {
-      // No image (e.g. opened directly) -> fall back to the sample so the demo still flows
+      // No image means we were opened without a capture — nothing to read.
       if (!base64) {
-        setTimeout(() => !cancelled && navigation.replace('Results'), 2600);
+        setErrored('No photo to read. Please scan or pick a prescription image.');
         return;
       }
       try {

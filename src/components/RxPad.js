@@ -2,7 +2,10 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { C, F } from '../theme/colors';
-import { RX_SOURCE } from '../data/mockData';
+
+// Self-contained placeholder letterhead (this whole component is a stand-in visual,
+// removed in the live-camera redesign). No app/user data here.
+const RX_SOURCE = { clinic: 'Sunrise Family Clinic', doctor: 'Dr. A. Mehta', date: 'Jun 6, 2026', patient: '—' };
 
 const INK = '#33436b';
 const MEDS = [

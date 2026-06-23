@@ -1,7 +1,7 @@
 // services/extract.js — the real AI scan pipeline for Medira.
 // Pick a photo -> POST it to the Supabase `extract-prescription` Edge Function
 // (Gemini 3.5 Flash, 89.4% benchmark) -> map the {name, per_day, stock} result
-// into the app's detection-card shape (same fields as data/mockData.js DETECTED).
+// into the app's detection-card shape consumed by the Results screen.
 //
 // The Gemini API key lives ONLY in the Edge Function (server-side). The app calls
 // the function with the project's publishable anon key — nothing secret ships in the APK.
@@ -9,12 +9,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { MED_COLORS } from '../theme/colors';
 import { afterMealTimes } from '../state/store';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 
-// ---- Supabase project (DawaiSaathi) ----
-const SUPABASE_URL = 'https://fvgeqvsceslwbdjybmff.supabase.co';
-// publishable / anon key — safe to ship; the function gate checks it, the AI key stays server-side
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2Z2VxdnNjZXNsd2JkanlibWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODcyMjMsImV4cCI6MjA5Njc2MzIyM30.KonZosfgCDdhQi5a_nKSbR94wwfpDelxKBZ8HEAwBsA';
 const FN_URL = `${SUPABASE_URL}/functions/v1/extract-prescription`;
 
 // ── 1. capture / pick an image, downscaled, as base64 ───────────────
@@ -42,9 +38,14 @@ export async function pickPrescriptionImage(fromCamera) {
 
 // ── 2. send to the Edge Function, get structured medicines back ─────
 export async function extractFromBase64(base64, mime = 'image/jpeg') {
+  const headers = { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  // when signed in, send the user's token so the scan attributes to them (per-user rate limit)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
   const resp = await fetch(FN_URL, {
     method: 'POST',
-    headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ image_b64: base64, mime }),
   });
   const data = await resp.json().catch(() => ({}));
@@ -92,8 +93,27 @@ function durationOf(stock) {
   return `${m[1]} ${m[2].toLowerCase().startsWith('day') ? 'days' : 'weeks'}`;
 }
 
+const FORM_DISPLAY = { tablet: 'Tablet', capsule: 'Capsule', syrup: 'Syrup', injection: 'Injection', drops: 'Drops', cream: 'Cream' };
+function formOf(m) {
+  const f = String(m.form || '').toLowerCase();
+  return FORM_DISPLAY[f] || detectForm(m.name); // prefer Gemini's form, else infer from the name
+}
+// food/sleep timing -> display text + the icon used on dose rows
+function instructionOf(m, isSos) {
+  const t = {
+    'after food': { text: 'After food', icon: 'food' },
+    'before food': { text: 'Before food', icon: 'food' },
+    'empty stomach': { text: 'Empty stomach', icon: 'food' },
+    'at bedtime': { text: 'At bedtime', icon: 'clock' },
+    'with water': { text: 'With water', icon: 'drop' },
+  }[String(m.instruction || '').toLowerCase()];
+  if (t) return t;
+  if (isSos) return { text: 'When needed', icon: 'pill' };
+  return { text: 'As prescribed', icon: 'pill' };
+}
+
 /**
- * @param meds  array of {name, per_day, stock, confidence} from the function
+ * @param meds  array of {name, strength, form, per_day, instruction, duration, confidence} from the function
  * @param meals settings.meals ({breakfast,lunch,dinner}) so doses land after meals
  */
 export function mapToCards(meds, meals) {
@@ -104,6 +124,7 @@ export function mapToCards(meds, meals) {
     const conf = m.confidence === 'high' ? 0.95 : 0.74;
     const color = MED_COLORS[i % MED_COLORS.length];
     const nm = cleanName(m.name);
+    const ins = instructionOf(m, isSos);
 
     let times = [];
     let frequency = m.per_day || '';
@@ -120,25 +141,26 @@ export function mapToCards(meds, meals) {
       fShort = 'SOS';
       times = []; // no fixed reminders for SOS meds
     } else if (m.per_day) {
-      // a literal phrase like "once a week" — remind once in the morning
-      times = [mealTimes[0] || '8:00 AM'];
+      times = [mealTimes[0] || '8:00 AM']; // literal phrase like "once a week" — remind once
     }
 
     return {
       id: (nm || 'med').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6) + i,
       name: nm,
-      strength: strengthOf(m.name),
-      form: detectForm(m.name),
+      strength: m.strength || strengthOf(m.name),  // prefer Gemini's strength
+      form: formOf(m),
       dose,
       frequency,
       freqShort: fShort,
-      duration: durationOf(m.stock),
-      instruction: isSos ? 'When needed' : 'After food',
-      instrIcon: isSos ? 'pill' : 'food',
+      duration: durationOf(m.duration || m.stock),
+      instruction: ins.text,
+      instrIcon: ins.icon,
       purpose: 'From your prescription',
+      per_day: m.per_day || '',
+      source: 'scan',
       confidence: conf,
       times,
-      raw: `${m.name}${m.per_day ? ' · ' + m.per_day : ''}${m.stock ? ' · ' + m.stock : ''}`,
+      raw: [m.name, m.strength, m.per_day, m.duration].filter(Boolean).join(' · '),
       color,
     };
   });
