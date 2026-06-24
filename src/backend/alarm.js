@@ -34,14 +34,17 @@ function notifeePattern(arr) {
   return p;
 }
 
+// bump the suffix whenever channel settings (sound/vibration) change — Android LOCKS a
+// channel's settings after first creation, so a new id is the only way to apply them.
+const CHANNEL_VER = 'v2';
 async function ensureChannel(tune) {
   const t = tuneById(tune);
-  const id = `med-alarm-${t.id}`;
+  const id = `med-alarm-${CHANNEL_VER}-${t.id}`;
   await notifee.createChannel({
     id,
     name: `Medicine alarm · ${t.name}`,
     importance: AndroidImportance.HIGH,
-    sound: 'default',
+    sound: t.sound || 'default',   // bundled alarm tone in res/raw (assets/sounds/<id>.wav)
     vibration: true,
     vibrationPattern: notifeePattern(t.vibration),
     bypassDnd: true,

@@ -25,9 +25,9 @@ export default function AlarmSoundScreen({ navigation, route }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.paper }} contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 40 }}>
-      <PageHeader title="Reminder vibration" onBack={() => navigation.goBack()} />
+      <PageHeader title="Alarm sound" onBack={() => navigation.goBack()} />
       <Text style={{ fontSize: 13.5, color: C.inkSoft, marginHorizontal: 2, marginBottom: 16, fontFamily: F.ui }}>
-        Tap to feel each pattern. {isMed ? 'Used for this medication.' : 'Your default for new reminders.'}
+        Tap to hear each one. {isMed ? 'Used for this medication.' : 'Your default for new reminders.'}
       </Text>
       <View style={{ gap: 10 }}>
         {TUNES.map((t) => {

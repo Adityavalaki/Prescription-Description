@@ -49,7 +49,15 @@
       [
         "expo-notifications",
         {
-          "color": "#0E7C86"
+          "color": "#0E7C86",
+          "sounds": [
+            "./assets/sounds/chime.wav",
+            "./assets/sounds/marimba.wav",
+            "./assets/sounds/bells.wav",
+            "./assets/sounds/sunrise.wav",
+            "./assets/sounds/pulse.wav",
+            "./assets/sounds/classic.wav"
+          ]
         }
       ],
       [
