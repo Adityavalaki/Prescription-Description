@@ -6,7 +6,7 @@ only in the **dev/production build**, not Expo Go — use **"Continue as guest"*
 
 Current values:
 - **Web client ID:** `151508520584-djbdol8l704m92p8aqj602hstvoc8dea.apps.googleusercontent.com`
-- **Package name (testing):** `com.example.medira`  ← will change before Play launch (see note)
+- **Package name (final):** `com.adityavalaki.medira`
 - **Supabase project:** `bjxhnkwgtnkxyotzdzcw`
 
 ---
@@ -32,7 +32,7 @@ https://console.cloud.google.com → select the project that owns the Web client
    - While it is in **"Testing"**, add your own Google account under **Test users**.
    - (When ready for the public, click **Publish app**.)
 2. **APIs & Services → Credentials → Create Credentials → OAuth client ID → Android**
-   - **Package name:** `com.example.medira`
+   - **Package name:** `com.adityavalaki.medira`
    - **SHA-1:** paste the value from Step 1.
    - **Create**, then copy the new **Android client ID**.
 
@@ -63,10 +63,12 @@ double-check the SHA-1 matches the build profile you installed, and that you're 
 
 ---
 
-## ⚠️ Before Google Play launch
+## ⚠️ Notes
 
-`com.example.*` is **not allowed** on Google Play, and the package name is **permanent**.
-Pick a real one (e.g. `com.adityavalaki.medira`) **before** first upload, then:
-- Add a **new Android OAuth client** with that package + your **production** keystore SHA-1.
-- Add both that client ID and the Web client ID to Supabase.
-- Publish the OAuth consent screen.
+- The package name is now the final **`com.adityavalaki.medira`** (changed from `com.example.*`,
+  which Google Play does not allow). It is **permanent** once published.
+- Because the package changed, you must **rebuild** (the old `com.example.medira` dev build
+  won't accept the new OAuth client) and create the Android OAuth client with the new package.
+- For **production**, the production build uses the **same EAS keystore** (same SHA-1) — you can
+  reuse one Android OAuth client for both, or add a second one. Publish the OAuth consent
+  screen before public launch.

@@ -1,10 +1,10 @@
-// screens/SosScreen.js — emergency screen that places REAL phone calls to your contacts.
-// Tapping a contact opens the phone dialer with their number (one tap to call) via Linking.
+// screens/SosScreen.js — emergency screen that calls your contacts.
+// Tapping a contact opens the phone dialer with their number pre-filled (one tap to connect)
+// via Linking — no CALL_PHONE permission needed, which keeps the Play review clean.
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Linking, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, Pressable, ScrollView, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as IntentLauncher from 'expo-intent-launcher';
 import Icon from '../components/Icon';
 import { Button, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
@@ -13,25 +13,10 @@ import { useReka } from '../state/store';
 const filled = (list) => (list || []).filter((c) => c.name && c.phone);
 const telUri = (phone) => `tel:${String(phone).replace(/[^+\d]/g, '')}`;
 
-// Place the call directly (one tap) on Android when CALL_PHONE is granted; otherwise fall
-// back to opening the dialer with the number pre-filled.
+// Open the dialer with the contact's number pre-filled; the user taps the call button.
 async function placeCall(phone, toast) {
-  const uri = telUri(phone);
-  if (Platform.OS === 'android') {
-    try {
-      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CALL_PHONE, {
-        title: 'Allow Medira to call',
-        message: 'So one tap can call your emergency contact directly.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Not now',
-      });
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        await IntentLauncher.startActivityAsync('android.intent.action.CALL', { data: uri });
-        return;
-      }
-    } catch (_e) { /* fall back to the dialer below */ }
-  }
-  try { await Linking.openURL(uri); } catch (_e) { if (toast) toast('Couldn’t place the call', 'phoneOff'); }
+  try { await Linking.openURL(telUri(phone)); }
+  catch (_e) { if (toast) toast('Couldn’t open the dialer', 'phoneOff'); }
 }
 
 export default function SosScreen({ navigation }) {

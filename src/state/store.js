@@ -43,10 +43,11 @@ export function afterMealTimes(meals) {
 }
 
 // ── doses are derived from a medicine's times ────────────────
-// If the course STARTED earlier today (e.g. you scanned the prescription at 2pm, after
-// breakfast), the slots before that start time are marked 'taken' — so scheduling continues
-// from the next slot instead of from the morning. Derived from the medicine's startedAt so
-// it stays correct across app reloads (not only at the moment of scanning).
+// If the course STARTED later today (e.g. you scanned the prescription at 2pm, after lunch),
+// the dose slots BEFORE that start time are EXCLUDED for that day — they are not shown and
+// not counted in adherence. The schedule simply begins at the next slot (e.g. dinner). From
+// the next day, the full schedule applies. Derived from startedAt so it stays correct across
+// app reloads (not only at the moment of scanning).
 function isSameDay(ts) {
   const d = new Date(ts); const n = new Date();
   return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
@@ -56,20 +57,18 @@ function makeDoses(med) {
   const startMins = (med.startedAt && isSameDay(med.startedAt))
     ? new Date(med.startedAt).getHours() * 60 + new Date(med.startedAt).getMinutes()
     : 0;
-  return (med.times || []).map((tm, i) => {
-    const t = toMins(tm);
-    let status;
-    if (t < startMins) status = 'taken';        // before the course started today → already taken
-    else if (t > now) status = 'upcoming';
-    else status = 'due';                          // now or overdue, still actionable
-    return {
-      id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
-      medId: med.id, med: med.name, strength: med.strength, time: tm, mins: t,
-      note: med.instruction || '',
-      status,
-      icon: med.instrIcon || med.icon || 'pill', color: med.color,
-    };
-  });
+  return (med.times || [])
+    .map((tm, i) => {
+      const t = toMins(tm);
+      return {
+        id: `${med.id}-${i}-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
+        medId: med.id, med: med.name, strength: med.strength, time: tm, mins: t,
+        note: med.instruction || '',
+        status: t > now ? 'upcoming' : 'due',
+        icon: med.instrIcon || med.icon || 'pill', color: med.color,
+      };
+    })
+    .filter((d) => d.mins >= startMins); // exclude slots before the scan time on the start day
 }
 
 // ── initial state: empty. The user's data loads from the cloud on login
