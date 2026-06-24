@@ -7,7 +7,9 @@
     "scheme": "medira",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "url": "https://u.expo.dev/f4c9457f-7516-4512-aa3d-04fcf71e20eb",
       "fallbackToCacheTimeout": 0
@@ -64,7 +66,8 @@
         }
       ],
       "@react-native-google-signin/google-signin",
-      "./plugins/withMediraAlarm"
+      "./plugins/withMediraAlarm",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

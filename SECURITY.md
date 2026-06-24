@@ -1,5 +1,38 @@
 # Medira — Security posture
 
+## 🔎 Audit results — 24 June 2026 (verified)
+
+- ✅ **No secrets in the codebase.** Full scan (excl. node_modules) for service-role keys,
+  API keys, JWTs, PEM blocks — **0 found**. The app ships only the **publishable** anon key.
+- ✅ **RLS is LIVE and enforced.** Queried every table (`profiles`, `medicines`, `doses`,
+  `prescriptions`, `sos_contacts`, `scan_events`) over the REST API using only the public
+  anon key (no user login). **Every table returned `[]`** — an attacker with the shipped key
+  cannot read any user's data.
+- ✅ **No dangerous code.** No `eval` / `new Function` / `child_process`; the `.exec()` hits are
+  regex matches. No cleartext `http://`. DB queries are parameterized (PostgREST); the one
+  string-built filter only uses **UUID-validated** ids → no SQL injection.
+- ✅ **Client config safe** — publishable key only, `detectSessionInUrl: false`, HTTPS only.
+
+### Findings / recommendations
+- **MEDIUM (cost, not data) — FIXED in code, ⏳ deploy pending:** the Edge Function now
+  **verifies the JWT via the auth server** (`admin.auth.getUser`) instead of trusting a decoded
+  claim, so a forged token can't impersonate a user or get a fresh rate-limit bucket — it falls
+  back to IP-based limiting. The updated `supabase/functions/extract-prescription/index.ts` is
+  ready; **redeploy it** when the Supabase connection is back (it can't be deployed right now).
+- **LOW–MED (device compromise) — FIXED:** the auth session now uses **`expo-secure-store`**
+  (hardware-backed Keystore/Keychain encryption) via `src/services/secureStorage.js`, with a
+  safe AsyncStorage fallback and transparent chunking. Tokens are encrypted at rest.
+- **LOW (privacy):** medicine reminders show the medicine name on the lock screen
+  (`lockscreenVisibility: PUBLIC`). Set to `PRIVATE` to hide content from onlookers (trade-off:
+  less glanceable).
+- **INFO:** the mobile scan flow does **not** store prescription images — only the extracted
+  text — which minimises sensitive data at rest.
+- **ACTION:** rotate the OpenAI/Anthropic keys shared in chat earlier (benchmark only, not in
+  the app) — treat anything shared in plaintext as compromised.
+
+---
+
+
 ## ✅ Already in place (verified)
 
 - **No secrets in the app bundle.** The app ships only the **publishable** Supabase anon key
