@@ -51,12 +51,17 @@
         {
           "color": "#0E7C86",
           "sounds": [
+            "./assets/sounds/classic.wav",
+            "./assets/sounds/siren.wav",
+            "./assets/sounds/urgent.wav",
+            "./assets/sounds/chirp.wav",
+            "./assets/sounds/doorbell.wav",
+            "./assets/sounds/arcade.wav",
             "./assets/sounds/chime.wav",
             "./assets/sounds/marimba.wav",
             "./assets/sounds/bells.wav",
             "./assets/sounds/sunrise.wav",
-            "./assets/sounds/pulse.wav",
-            "./assets/sounds/classic.wav"
+            "./assets/sounds/pulse.wav"
           ]
         }
       ],
