@@ -7,8 +7,8 @@ import { PageHeader } from '../components/common';
 import { Button } from '../components/ui';
 import { Field, TextField, Segmented, Stepper, ColorSwatches, TimePicker } from './formBits';
 import { C, F, MED_COLORS } from '../theme/colors';
-import { useReka, getState } from '../state/store';
-import { TUNES } from '../state/tunes';
+import { useReka, getState } from '../../state/store';
+import { TUNES } from '../../state/tunes';
 
 export default function ManualEntryScreen({ navigation, route }) {
   const [, A] = useReka();

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Card, Button, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 
 function SosField({ label, value, onChange, placeholder, keyboardType, last }) {
   const [focus, setFocus] = useState(false);

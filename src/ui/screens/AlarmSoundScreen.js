@@ -4,9 +4,9 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import Icon from '../components/Icon';
 import { PageHeader } from '../components/common';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-import { TUNES, playTune } from '../state/tunes';
-import { previewAlarm } from '../services/alarm';
+import { useReka } from '../../state/store';
+import { TUNES, playTune } from '../../state/tunes';
+import { previewAlarm } from '../../backend/alarm';
 
 export default function AlarmSoundScreen({ navigation, route }) {
   const [s, A] = useReka();

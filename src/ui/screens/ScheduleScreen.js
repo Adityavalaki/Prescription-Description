@@ -4,7 +4,7 @@ import { View, Text, ScrollView } from 'react-native';
 import { DeepHeader } from '../components/common';
 import { Card, MedBadge, IconChip, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 import { DOSE_STATE } from '../theme/colors';
 
 function periodOf(mins) { return mins < 720 ? 'Morning' : mins < 1020 ? 'Afternoon' : 'Evening'; }

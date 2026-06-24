@@ -4,7 +4,7 @@ import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { ObHeader, ObSeg } from './onboardingBits';
 import { Button } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 
 export default function ProfileScreen({ navigation }) {
   const [s, A] = useReka();
@@ -24,7 +24,7 @@ export default function ProfileScreen({ navigation }) {
       <ObHeader step={0} onBack={() => navigation.goBack()} />
       <View style={{ marginTop: 30 }}>
         <Text style={{ fontFamily: F.display, fontSize: 30, lineHeight: 34, letterSpacing: -0.6, color: C.ink }}>A bit about you</Text>
-        <Text style={{ fontSize: 15.5, lineHeight: 23, color: C.inkSoft, marginTop: 10, fontFamily: F.ui }}>This helps us tailor dose guidance and keep your plan safe.</Text>
+        <Text style={{ fontSize: 15.5, lineHeight: 23, color: C.inkSoft, marginTop: 10, fontFamily: F.ui }}>This helps us set up your plan and personalise Medira for you.</Text>
       </View>
 
       <View style={{ marginTop: 30 }}>

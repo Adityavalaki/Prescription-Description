@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from './Icon';
 import { C, F } from '../theme/colors';
-import { getState } from '../state/store';
+import { getState } from '../../state/store';
 
 export function Logo({ size = 28, mono = false }) {
   return (

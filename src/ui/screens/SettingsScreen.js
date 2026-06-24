@@ -6,11 +6,11 @@ import Icon from '../components/Icon';
 import { PageHeader } from '../components/common';
 import { Card, SectionLabel, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-import { TUNES } from '../state/tunes';
-import { signOut } from '../services/auth';
-import { openBatteryOptimizationSettings } from '../services/alarm';
-import { PRIVACY_URL, TERMS_URL, SUPPORT_EMAIL } from '../config/legal';
+import { useReka } from '../../state/store';
+import { TUNES } from '../../state/tunes';
+import { signOut } from '../../backend/auth';
+import { openBatteryOptimizationSettings } from '../../backend/alarm';
+import { PRIVACY_URL, TERMS_URL, SUPPORT_EMAIL } from '../../config/legal';
 
 function Row({ icon, label, detail, onPress, last, danger }) {
   const body = (

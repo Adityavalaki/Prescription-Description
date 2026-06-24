@@ -7,7 +7,7 @@ import Icon from '../components/Icon';
 import { Logo } from '../components/common';
 import { Button } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { getState } from '../state/store';
+import { getState } from '../../state/store';
 
 const FEATS = [
   { icon: 'camera', t: 'Snap the prescription', s: 'Even messy handwriting' },

@@ -3,7 +3,7 @@
 // that re-renders subscribers on any state change.
 
 import React from 'react';
-import { MED_COLORS } from '../theme/colors';
+import { MED_COLORS } from '../ui/theme/colors';
 
 // client-side uuid (v4) so medicine ids line up with the DB's uuid columns
 export function uuid() {
@@ -78,6 +78,7 @@ let state = {
   doses: [],
   history: [],
   hydrated: false, // true once the user's cloud data has loaded (gates the onboarding decision)
+  dosesDate: null, // toDateString() the current doses were built for (for day-aware refresh)
   settings: {
     name: '', phone: '', age: '', gender: '', loggedIn: false,
     defaultTune: 'chime', snoozeMin: 30,
@@ -162,10 +163,21 @@ export const actions = {
   addScanRecord: (rec) => set((s) => ({ history: [rec, ...(s.history || [])] })),
   // mark the store as loading the next user's data (gates onboarding/Main until hydrate)
   beginLoad: () => set({ hydrated: false }),
-  // replace the store from cloud data on login; rebuilds today's doses from the medicines
+  // replace the store from cloud data on login/refresh; rebuilds today's doses from medicines.
+  // Preserves TODAY's taken/skipped marks across a refresh (doses are derived, so a naive
+  // refetch would wipe them); on a new day it starts fresh.
   hydrate: ({ meds, profile, sos, history }) => set((s) => {
-    const next = { meds: meds || [], history: history || [], hydrated: true, settings: { ...s.settings } };
-    next.doses = (meds || []).flatMap((m) => makeDoses(m)).sort((a, b) => a.mins - b.mins);
+    const today = new Date().toDateString();
+    const keep = {};
+    if (s.dosesDate === today) {
+      (s.doses || []).forEach((d) => {
+        if (d.status === 'taken' || d.status === 'skipped') keep[`${d.medId}|${d.time}`] = d.status;
+      });
+    }
+    const next = { meds: meds || [], history: history || [], hydrated: true, dosesDate: today, settings: { ...s.settings } };
+    next.doses = (meds || []).flatMap((m) => makeDoses(m))
+      .map((d) => { const k = keep[`${d.medId}|${d.time}`]; return k ? { ...d, status: k } : d; })
+      .sort((a, b) => a.mins - b.mins);
     if (profile) {
       next.settings.name = profile.full_name || '';
       next.settings.phone = profile.phone || s.settings.phone;

@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Chip, Card, Button, MedBadge } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka, uuid } from '../state/store';
-import { persistScan } from '../services/repository';
+import { useReka, uuid } from '../../state/store';
+import { persistScan } from '../../backend/repository';
 import ReviewMedSheet from './ReviewMedSheet';
 
 export default function ResultsScreen({ navigation, route }) {

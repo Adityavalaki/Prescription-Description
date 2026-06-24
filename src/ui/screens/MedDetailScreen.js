@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Ring, Card, Button, SectionLabel, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-import { runOutDate, daysLeft } from '../services/doctorVisit';
+import { useReka } from '../../state/store';
+import { runOutDate, daysLeft } from '../../backend/doctorVisit';
 import RefillSheet from './RefillSheet';
 
 export default function MedDetailScreen({ navigation, route }) {
@@ -100,7 +100,7 @@ export default function MedDetailScreen({ navigation, route }) {
                   </Ring>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 15, fontFamily: F.uiBold, color: C.ink }}>{m.courseTotal - m.courseDay} days to go</Text>
-                    <Text style={{ fontSize: 13, color: C.inkSoft, lineHeight: 19, marginTop: 3, fontFamily: F.ui }}>Finish the full course even if you feel better — it helps the antibiotic work.</Text>
+                    <Text style={{ fontSize: 13, color: C.inkSoft, lineHeight: 19, marginTop: 3, fontFamily: F.ui }}>Keep going until your course is complete, as advised by your doctor.</Text>
                   </View>
                 </View>
               </Card>

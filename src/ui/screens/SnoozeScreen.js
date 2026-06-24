@@ -4,7 +4,7 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import Icon from '../components/Icon';
 import { PageHeader } from '../components/common';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 
 const OPTIONS = [15, 30, 45, 60];
 const label = (m) => (m === 60 ? '1 hour' : `${m} minutes`);

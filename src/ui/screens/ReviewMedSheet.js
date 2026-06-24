@@ -8,8 +8,8 @@ import Icon from '../components/Icon';
 import { Button } from '../components/ui';
 import { Field, TextField, Segmented } from './formBits';
 import { C, F } from '../theme/colors';
-import { getState } from '../state/store';
-import { mapToCards } from '../services/extract';
+import { getState } from '../../state/store';
+import { mapToCards } from '../../backend/extract';
 
 const FORMS = ['Tablet', 'Capsule', 'Syrup', 'Drops'];
 const INSTRUCTIONS = ['After food', 'Before food', 'Empty stomach', 'With water', 'At bedtime', 'As prescribed'];

@@ -1,6 +1,6 @@
 # Google Sign-In — exact setup steps (Medira)
 
-The **code is done**. `GOOGLE_WEB_CLIENT_ID` is already set in `src/services/auth.js`. These
+The **code is done**. `GOOGLE_WEB_CLIENT_ID` is already set in `src/backend/auth.js`. These
 are the one-time **console** steps (the only thing I can't do for you). Google sign-in runs
 only in the **dev/production build**, not Expo Go — use **"Continue as guest"** in Expo Go.
 

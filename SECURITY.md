@@ -20,7 +20,7 @@
   back to IP-based limiting. The updated `supabase/functions/extract-prescription/index.ts` is
   ready; **redeploy it** when the Supabase connection is back (it can't be deployed right now).
 - **LOW–MED (device compromise) — FIXED:** the auth session now uses **`expo-secure-store`**
-  (hardware-backed Keystore/Keychain encryption) via `src/services/secureStorage.js`, with a
+  (hardware-backed Keystore/Keychain encryption) via `src/backend/secureStorage.js`, with a
   safe AsyncStorage fallback and transparent chunking. Tokens are encrypted at rest.
 - **LOW (privacy):** medicine reminders show the medicine name on the lock screen
   (`lockscreenVisibility: PUBLIC`). Set to `PRIVATE` to hide content from onlookers (trade-off:

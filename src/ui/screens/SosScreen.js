@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Button, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 
 const filled = (list) => (list || []).filter((c) => c.name && c.phone);
 const telUri = (phone) => `tel:${String(phone).replace(/[^+\d]/g, '')}`;

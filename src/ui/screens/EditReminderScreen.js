@@ -6,8 +6,8 @@ import { PageHeader } from '../components/common';
 import { Card, Button, MedBadge, Toast, useToast } from '../components/ui';
 import { Field, TimePicker, Toggle } from './formBits';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-import { TUNES } from '../state/tunes';
+import { useReka } from '../../state/store';
+import { TUNES } from '../../state/tunes';
 
 export default function EditReminderScreen({ navigation, route }) {
   const [s, A] = useReka();

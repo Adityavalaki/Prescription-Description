@@ -9,7 +9,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Icon from '../components/Icon';
 import { Button, Toast, useToast } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { pickPrescriptionImage } from '../services/extract';
+import { pickPrescriptionImage } from '../../backend/extract';
 
 export default function ScanScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -63,7 +63,7 @@ export default function ScanScreen({ navigation }) {
         </View>
         <Text style={{ color: '#fff', fontFamily: F.display, fontSize: 22, textAlign: 'center' }}>Camera access needed</Text>
         <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14.5, textAlign: 'center', lineHeight: 21, fontFamily: F.ui }}>
-          Medira uses your camera to photograph the prescription. Your photo stays private to your account.
+          Medira uses your camera to scan your prescription. Your photo is used only to read it, and isn't stored.
         </Text>
         <View style={{ height: 6 }} />
         <Button icon="camera" onPress={requestPerm} style={{ backgroundColor: C.primary }}>Allow camera</Button>

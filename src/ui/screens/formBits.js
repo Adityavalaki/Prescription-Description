@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable } from 'react-native';
 import Icon from '../components/Icon';
 import { C, F, MED_COLORS } from '../theme/colors';
-import { toMins } from '../state/store';
+import { toMins } from '../../state/store';
 
 export const TIME_PRESETS = ['7:30 AM', '8:00 AM', '9:00 AM', '12:00 PM', '2:00 PM', '6:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'];
 

@@ -6,7 +6,7 @@ import Icon from '../components/Icon';
 import { Avatar, SosPill } from '../components/common';
 import { Ring, Chip, Card, Button, SectionLabel, MedBadge, IconChip, Toast, useToast, shadow } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 import { DOSE_STATE } from '../theme/colors';
 
 export default function HomeScreen({ navigation }) {

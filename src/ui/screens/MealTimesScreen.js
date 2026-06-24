@@ -5,7 +5,7 @@ import { ObHeader } from './onboardingBits';
 import Icon from '../components/Icon';
 import { Card, Button } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka, toMins, fromMins, plusMin, afterMealTimes } from '../state/store';
+import { useReka, toMins, fromMins, plusMin, afterMealTimes } from '../../state/store';
 
 const ROWS = [
   { k: 'breakfast', label: 'Breakfast', icon: 'sun' },

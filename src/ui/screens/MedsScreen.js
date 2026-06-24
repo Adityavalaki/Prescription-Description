@@ -5,8 +5,8 @@ import Icon from '../components/Icon';
 import { DeepHeader } from '../components/common';
 import { Chip, Card, MedBadge, IconChip } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
-import { daysLeft } from '../services/doctorVisit';
+import { useReka } from '../../state/store';
+import { daysLeft } from '../../backend/doctorVisit';
 
 export default function MedsScreen({ navigation }) {
   const [s] = useReka();

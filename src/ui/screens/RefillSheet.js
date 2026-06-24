@@ -5,7 +5,7 @@ import { View, Text, Pressable, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { C, F } from '../theme/colors';
-import { runOutDate, daysLeft, scheduleVisitReminder, addVisitToCalendar } from '../services/doctorVisit';
+import { runOutDate, daysLeft, scheduleVisitReminder, addVisitToCalendar } from '../../backend/doctorVisit';
 
 const fmt = (d) => d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 

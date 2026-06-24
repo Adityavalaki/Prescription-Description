@@ -5,7 +5,7 @@ import Icon from '../components/Icon';
 import { DeepHeader } from '../components/common';
 import { Card, SectionLabel, IconChip } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { useReka } from '../state/store';
+import { useReka } from '../../state/store';
 
 export default function HistoryScreen({ navigation }) {
   const [s] = useReka();

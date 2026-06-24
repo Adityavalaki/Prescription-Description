@@ -15,36 +15,36 @@ import { Outfit_600SemiBold, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import { Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold, Figtree_800ExtraBold } from '@expo-google-fonts/figtree';
 import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
 
-import { C } from './src/theme/colors';
-import MainTabs from './src/navigation/MainTabs';
+import { C } from './src/ui/theme/colors';
+import MainTabs from './src/ui/navigation/MainTabs';
 import { useReka } from './src/state/store';
 import {
   scheduleAllAlarms, requestAlarmPermission, registerAlarmBackgroundHandler,
   registerAlarmForegroundHandler, drainPendingActions,
-} from './src/services/alarm';
-import { useSession } from './src/services/auth';
-import { useCloudSync } from './src/services/cloudsync';
+} from './src/backend/alarm';
+import { useSession } from './src/backend/auth';
+import { useCloudSync } from './src/backend/cloudsync';
 
 // Notifee background handler — must be registered at module scope (handles Taken/Snooze
 // taps while the app is backgrounded or killed). No-op in Expo Go.
 registerAlarmBackgroundHandler();
 
-import BatteryPrompt from './src/components/BatteryPrompt';
-import LoginScreen from './src/screens/LoginScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import MealTimesScreen from './src/screens/MealTimesScreen';
-import WelcomeScreen from './src/screens/WelcomeScreen';
-import ScanScreen from './src/screens/ScanScreen';
-import ProcessingScreen from './src/screens/ProcessingScreen';
-import ResultsScreen from './src/screens/ResultsScreen';
-import MedDetailScreen from './src/screens/MedDetailScreen';
-import ManualEntryScreen from './src/screens/ManualEntryScreen';
-import AlarmSoundScreen from './src/screens/AlarmSoundScreen';
-import SnoozeScreen from './src/screens/SnoozeScreen';
-import EditReminderScreen from './src/screens/EditReminderScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
-import SosScreen from './src/screens/SosScreen';
-import SosContactsScreen from './src/screens/SosContactsScreen';
+import BatteryPrompt from './src/ui/components/BatteryPrompt';
+import LoginScreen from './src/ui/screens/LoginScreen';
+import ProfileScreen from './src/ui/screens/ProfileScreen';
+import MealTimesScreen from './src/ui/screens/MealTimesScreen';
+import WelcomeScreen from './src/ui/screens/WelcomeScreen';
+import ScanScreen from './src/ui/screens/ScanScreen';
+import ProcessingScreen from './src/ui/screens/ProcessingScreen';
+import ResultsScreen from './src/ui/screens/ResultsScreen';
+import MedDetailScreen from './src/ui/screens/MedDetailScreen';
+import ManualEntryScreen from './src/ui/screens/ManualEntryScreen';
+import AlarmSoundScreen from './src/ui/screens/AlarmSoundScreen';
+import SnoozeScreen from './src/ui/screens/SnoozeScreen';
+import EditReminderScreen from './src/ui/screens/EditReminderScreen';
+import SettingsScreen from './src/ui/screens/SettingsScreen';
+import SosScreen from './src/ui/screens/SosScreen';
+import SosContactsScreen from './src/ui/screens/SosContactsScreen';
 
 // Reminder engine, app-wide. Schedules looping medicine alarms (Notifee) from the store
 // and routes Taken/Snooze taps back to the store (incl. taps queued while backgrounded).

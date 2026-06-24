@@ -9,7 +9,7 @@ import { C, F } from '../theme/colors';
 import {
   getBatteryGuidance, markBatteryPrompted,
   openBatteryOptimizationSettings, openPowerManagerSettings,
-} from '../services/alarm';
+} from '../../backend/alarm';
 
 export default function BatteryPrompt() {
   const insets = useSafeAreaInsets();

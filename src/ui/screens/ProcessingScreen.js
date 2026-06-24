@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { shadow } from '../components/ui';
 import { C, F } from '../theme/colors';
-import { extractFromBase64, mapToCards } from '../services/extract';
-import { getState } from '../state/store';
+import { extractFromBase64, mapToCards } from '../../backend/extract';
+import { getState } from '../../state/store';
 
 const STEPS = ['Reading the handwriting', 'Matching to known medications', 'Checking dosages & timing'];
 
@@ -107,7 +107,7 @@ export default function ProcessingScreen({ navigation, route }) {
       <View style={{ flex: 1 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 24 }}>
         <Icon name="shield" size={15} color={C.inkFaint} stroke={2} />
-        <Text style={{ color: C.inkFaint, fontSize: 12.5, fontFamily: F.ui }}>Processed privately on your device</Text>
+        <Text style={{ color: C.inkFaint, fontSize: 12.5, fontFamily: F.ui }}>Sent securely to read it · your photo isn't stored</Text>
       </View>
     </ScrollView>
   );

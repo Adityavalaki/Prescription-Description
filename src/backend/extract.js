@@ -7,7 +7,7 @@
 // the function with the project's publishable anon key — nothing secret ships in the APK.
 
 import * as ImagePicker from 'expo-image-picker';
-import { MED_COLORS } from '../theme/colors';
+import { MED_COLORS } from '../ui/theme/colors';
 import { afterMealTimes } from '../state/store';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 

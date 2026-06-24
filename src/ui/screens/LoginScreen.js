@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Logo } from '../components/common';
 import { C, F } from '../theme/colors';
-import { signInWithGoogle, signInGuest } from '../services/auth';
-import { PRIVACY_URL, TERMS_URL } from '../config/legal';
+import { signInWithGoogle, signInGuest } from '../../backend/auth';
+import { PRIVACY_URL, TERMS_URL } from '../../config/legal';
 
 function GoogleG() {
   return (
