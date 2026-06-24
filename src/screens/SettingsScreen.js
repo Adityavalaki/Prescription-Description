@@ -1,6 +1,6 @@
 // screens/SettingsScreen.js — profile + reminders/meds/emergency/about rows.
 import React from 'react';
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from '../components/Icon';
 import { PageHeader } from '../components/common';
@@ -10,6 +10,7 @@ import { useReka } from '../state/store';
 import { TUNES } from '../state/tunes';
 import { signOut } from '../services/auth';
 import { openBatteryOptimizationSettings } from '../services/alarm';
+import { PRIVACY_URL, TERMS_URL, SUPPORT_EMAIL } from '../config/legal';
 
 function Row({ icon, label, detail, onPress, last, danger }) {
   const body = (
@@ -68,8 +69,9 @@ export default function SettingsScreen({ navigation }) {
 
         <SectionLabel>About</SectionLabel>
         <Card pad={0} style={{ marginBottom: 20 }}>
-          <Row icon="shield" label="Privacy & data" onPress={() => toast('Your data is synced securely to your account', 'shield')} />
-          <Row icon="info" label="Help & support" onPress={() => toast('Support: help@medira.app', 'info')} last />
+          <Row icon="shield" label="Privacy Policy" onPress={() => Linking.openURL(PRIVACY_URL)} />
+          <Row icon="doc" label="Terms of Service" onPress={() => Linking.openURL(TERMS_URL)} />
+          <Row icon="info" label="Help & support" detail={SUPPORT_EMAIL} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} last />
         </Card>
 
         <Card pad={0} style={{ marginBottom: 30 }}>

@@ -64,14 +64,6 @@ export default function ResultsScreen({ navigation, route }) {
         </View>
         <Text style={{ fontFamily: F.display, fontSize: 27, letterSpacing: -0.6, color: C.ink, marginTop: 16 }}>We found <Text style={{ color: C.primary }}>{meds.length} medication{meds.length === 1 ? '' : 's'}</Text></Text>
 
-        {/* AI fallibility notice */}
-        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: C.amberTint, borderRadius: 14, padding: 13, marginTop: 14 }}>
-          <Icon name="info" size={18} color={C.amber} stroke={2.2} />
-          <Text style={{ flex: 1, fontSize: 13, lineHeight: 19, color: C.ink, fontFamily: F.ui }}>
-            AI can misread handwriting. Please <Text style={{ fontFamily: F.uiBold }}>review each medicine and dose</Text> and tap Review to fix anything before saving.
-          </Text>
-        </View>
-
         {meds.length === 0 ? (
           <Card style={{ padding: 20, marginTop: 20, alignItems: 'center', gap: 6 }}>
             <Text style={{ fontFamily: F.uiBold, fontSize: 15, color: C.ink }}>No medicines detected</Text>
@@ -112,6 +104,16 @@ export default function ResultsScreen({ navigation, route }) {
             </Card>
           ))}
         </View>
+
+        {/* subtle AI fallibility note — kept low-key at the bottom */}
+        {meds.length > 0 ? (
+          <View style={{ flexDirection: 'row', gap: 7, alignItems: 'flex-start', marginTop: 18, paddingHorizontal: 2 }}>
+            <Icon name="info" size={14} color={C.inkFaint} stroke={2} />
+            <Text style={{ flex: 1, fontSize: 11.5, lineHeight: 16, color: C.inkFaint, fontFamily: F.ui }}>
+              AI can occasionally misread handwriting — please check each medicine and dose before saving.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       {/* confirm bar */}

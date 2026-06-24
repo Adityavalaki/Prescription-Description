@@ -1,12 +1,13 @@
 // screens/LoginScreen.js — Google sign-in (+ guest).
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Linking } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { Logo } from '../components/common';
 import { C, F } from '../theme/colors';
 import { signInWithGoogle, signInGuest } from '../services/auth';
+import { PRIVACY_URL, TERMS_URL } from '../config/legal';
 
 function GoogleG() {
   return (
@@ -88,7 +89,12 @@ export default function LoginScreen() {
 
       {err ? <Text style={{ fontSize: 13, color: C.berry, marginTop: 16, textAlign: 'center', fontFamily: F.uiMed }}>{err}</Text> : null}
 
-      <Text style={{ fontSize: 11.5, color: C.inkFaint, textAlign: 'center', marginTop: 18, lineHeight: 17, fontFamily: F.ui }}>By continuing you agree to Medira's Terms & Privacy Policy.</Text>
+      <Text style={{ fontSize: 11.5, color: C.inkFaint, textAlign: 'center', marginTop: 18, lineHeight: 17, fontFamily: F.ui }}>
+        By continuing you agree to Medira's{' '}
+        <Text style={{ color: C.inkSoft, fontFamily: F.uiBold }} onPress={() => Linking.openURL(TERMS_URL)}>Terms</Text>
+        {' '}&{' '}
+        <Text style={{ color: C.inkSoft, fontFamily: F.uiBold }} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>.
+      </Text>
     </ScrollView>
   );
 }
