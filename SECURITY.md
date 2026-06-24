@@ -14,11 +14,20 @@
 - ✅ **Client config safe** — publishable key only, `detectSessionInUrl: false`, HTTPS only.
 
 ### Findings / recommendations
-- **MEDIUM (cost, not data) — FIXED in code, ⏳ deploy pending:** the Edge Function now
-  **verifies the JWT via the auth server** (`admin.auth.getUser`) instead of trusting a decoded
-  claim, so a forged token can't impersonate a user or get a fresh rate-limit bucket — it falls
-  back to IP-based limiting. The updated `supabase/functions/extract-prescription/index.ts` is
-  ready; **redeploy it** when the Supabase connection is back (it can't be deployed right now).
+- **MEDIUM (cost, not data) — FIXED & DEPLOYED (v9):** the Edge Function now **verifies the JWT
+  via the auth server** (`admin.auth.getUser`) instead of trusting a decoded claim, so a forged
+  token can't impersonate a user or get a fresh rate-limit bucket — it falls back to IP-based
+  limiting. Live-tested after deploy: extraction still works.
+
+### Supabase Advisors — security (run 24 June 2026)
+No ERROR-level issues. The notices are **expected by design**, not vulnerabilities:
+- `scan_events` "RLS enabled, no policy" (INFO) — **intentional**: the usage log is
+  **service-role only**; no user role can read it.
+- "Anonymous access policies" (WARN) on profiles/medicines/doses/prescriptions/sos_contacts/
+  storage — **expected** because guest (anonymous) login is enabled; each guest is still scoped
+  to **their own rows** via `auth.uid() = user_id` (verified live: unauthenticated reads return `[]`).
+- "Leaked password protection disabled" (WARN) — **N/A**: Medira has no password login
+  (Google + anonymous only), so there are no passwords to protect.
 - **LOW–MED (device compromise) — FIXED:** the auth session now uses **`expo-secure-store`**
   (hardware-backed Keystore/Keychain encryption) via `src/backend/secureStorage.js`, with a
   safe AsyncStorage fallback and transparent chunking. Tokens are encrypted at rest.
